@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const OnboardForm = () => {
   const [email, setEmail] = useState("");
@@ -79,6 +80,12 @@ const OnboardForm = () => {
       >
         Sign Up
       </button>
+      <p className="text-sm mt-4">
+        Already have an account?{" "}
+        <Link href="/login" className="text-blue-500 hover:underline">
+          Log in
+        </Link>
+      </p>
       {error && <p className="text-red-500 mt-4">{error}</p>}
     </form>
   );

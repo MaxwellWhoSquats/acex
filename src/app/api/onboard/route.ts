@@ -14,14 +14,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Save user to database
-    const hashedPassword = await bcrypt.hash(password, 10);
     await connectMongoDB();
-    await User.create({ email, password: hashedPassword });
 
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "User already exists" },
+        { status: 400 }
+      );
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create the user
+    const user = await User.create({ email, password: hashedPassword });
     
     return NextResponse.json(
-      { message: "User successfully registered" },
+      { message: "User successfully registered", user: {email: user.email, balance: user.balance} },
       { status: 201 }
     );
   } catch (error: any) {

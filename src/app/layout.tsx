@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { Urbanist } from "next/font/google";
+import { Orbitron } from "next/font/google";
 import { AuthProvider } from "./Providers";
 import { BalanceProvider } from "../app/contexts/BalanceContext";
 import "./globals.css";
 
-const urbanist = Urbanist({ subsets: ["latin"] });
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+});
 
 export const metadata: Metadata = {
   title: "Ace-X",
@@ -19,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body
-        className={`${urbanist.className} bg-gradient-to-b from-slate-950 to-slate-700`}
+        className={`${orbitron.className} bg-gradient-to-b from-slate-950 to-slate-700`}
       >
         <AuthProvider>
           <BalanceProvider>{children}</BalanceProvider>

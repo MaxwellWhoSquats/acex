@@ -5,6 +5,7 @@ const PUBLIC_PATHS = [
   "/onboard",
   "/login",
   "/api/auth",
+  "/api/onboard", // Added to public paths
   "/_next",
   "/favicon.ico",
   "/static",
@@ -34,7 +35,7 @@ export async function middleware(req) {
     console.log(`No token found. Redirecting to /onboard`);
     const onboardUrl = req.nextUrl.clone();
     onboardUrl.pathname = "/onboard";
-    onboardUrl.search = ""; // Optional: Clear query parameters
+    onboardUrl.search = "";
     return NextResponse.redirect(onboardUrl);
   }
 
@@ -45,6 +46,6 @@ export async function middleware(req) {
 
 export const config = {
   matcher: [
-    "/((?!onboard|login|api/auth|_next|favicon.ico|static|public|\\.[a-z]+$).*)",
+    "/((?!onboard|login|api/auth|api/onboard|_next|favicon.ico|static|public|\\.[a-z]+$).*)",
   ],
 };

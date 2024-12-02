@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Urbanist } from "next/font/google";
+import { AuthProvider } from "./Providers";
 import "./globals.css";
 
 const urbanist = Urbanist({ subsets: ["latin"] });
@@ -19,7 +20,7 @@ export default function RootLayout({
       <body
         className={`${urbanist.className} bg-gradient-to-b from-slate-950 to-slate-700`}
       >
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

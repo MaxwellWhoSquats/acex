@@ -1,10 +1,14 @@
 "use client";
 import React, { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -12,6 +16,22 @@ const LoginForm = () => {
     if (!email || !password) {
       setError("Please fill in all fields");
       return;
+    }
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+
+      router.replace("/");
+    } catch (error) {
+      console.log(error);
     }
   };
 

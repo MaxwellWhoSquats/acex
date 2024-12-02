@@ -3,8 +3,6 @@ import { useEffect, useState } from "react";
 import { gsap } from "gsap";
 import ViewCanvas from "./components/ViewCanvas";
 import OnboardForm from "./components/OnboardForm";
-import Navbar from "../components/Navbar";
-import Link from "next/link";
 
 const Onboard = () => {
   const [showTagline1, setShowTagline1] = useState(true);
@@ -113,11 +111,6 @@ const Onboard = () => {
           <img src="/logo.png" alt="Logo" className="w-20" />
           <div className="p-2 px-4 flex w-full rounded-lg shadow-lg justify-between items-center">
             <h2 className="font-bold text-2xl">Ace-X</h2>
-            <Link href="/profile">
-              <p className="ml-4 py-1 px-3 bg-gray-200 text-gray-800 rounded hover:bg-purple-500 hover:text-white font-bold text-sm">
-                Profile
-              </p>
-            </Link>
           </div>
         </nav>
       )}

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { gsap } from "gsap";
 import ViewCanvas from "./components/ViewCanvas";
 import SignInForm from "./components/SignInForm";
+import Navbar from "../components/Navbar";
 
 const Onboard = () => {
   const [showTagline1, setShowTagline1] = useState(true);
@@ -106,34 +107,29 @@ const Onboard = () => {
 
   return (
     <>
-      {showRest && (
-        <div className="mt-6 mx-6 md:mx-16 topBar flex items-center">
-          <img src="/images/logo.png" alt="Logo" className="w-20" />
-          <div className="p-2 px-4 w-full border border-gray-300 rounded-lg shadow-lg justify-start">
-            <h2 className="font-bold">Ace-X</h2>
+      {showRest && <Navbar />}
+      <div className="px-6 md:px-16">
+        <h1 className="text-center text-[clamp(2rem,10vmin,10rem)] font-bold leading-none">
+          {showTagline1 && (
+            <span className="tagline1 block italic">
+              {renderLetters("Rise Above the Rest")}
+            </span>
+          )}
+          {showTagline2 && (
+            <span className="tagline2 italic tracking-wider">
+              {renderLetters("Defy Gravity")}
+            </span>
+          )}
+        </h1>
+        {showRest && (
+          <div className="restContent grid min-h-[80vh] grid-cols-1 md:grid-cols-2 items-center opacity-0">
+            <ViewCanvas />
+            <section className="col-start-1 md:row-start-1">
+              <SignInForm />
+            </section>
           </div>
-        </div>
-      )}
-      <h1 className="text-center text-[clamp(2rem,10vmin,10rem)] font-bold leading-none">
-        {showTagline1 && (
-          <span className="tagline1 block italic">
-            {renderLetters("Rise Above the Rest")}
-          </span>
         )}
-        {showTagline2 && (
-          <span className="tagline2 italic tracking-wider">
-            {renderLetters("Defy Gravity")}
-          </span>
-        )}
-      </h1>
-      {showRest && (
-        <div className="restContent grid min-h-[80vh] grid-cols-1 md:grid-cols-2 items-center opacity-0">
-          <ViewCanvas />
-          <section className="col-start-1 md:row-start-1">
-            <SignInForm />
-          </section>
-        </div>
-      )}
+      </div>
     </>
   );
 };

@@ -12,7 +12,7 @@ export default function ViewCanvas({}: Props) {
     const modelRef = useRef<THREE.Group>(null);
     useFrame((state) => {
       if (modelRef.current) {
-        modelRef.current.rotation.z += 0.012;
+        modelRef.current.rotation.z -= 0.012;
         modelRef.current.position.z =
           Math.sin(state.clock.getElapsedTime()) * 0.1;
       }
@@ -29,7 +29,7 @@ export default function ViewCanvas({}: Props) {
     <Canvas
       style={{
         top: 0,
-        left: "60%",
+        left: "40%",
         transform: "translateX(-50%)",
         overflow: "hidden",
         pointerEvents: "none",

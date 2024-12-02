@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 import { gsap } from "gsap";
 import ViewCanvas from "./components/ViewCanvas";
-import SignInForm from "./components/SignInForm";
+import OnboardForm from "./components/OnboardForm";
 import Navbar from "../components/Navbar";
+import Link from "next/link";
 
 const Onboard = () => {
   const [showTagline1, setShowTagline1] = useState(true);
@@ -107,7 +108,19 @@ const Onboard = () => {
 
   return (
     <>
-      {showRest && <Navbar />}
+      {showRest && (
+        <nav className="mt-6 mx-6 md:mx-9 topBar flex items-center">
+          <img src="/logo.png" alt="Logo" className="w-20" />
+          <div className="p-2 px-4 flex w-full rounded-lg shadow-lg justify-between items-center">
+            <h2 className="font-bold text-2xl">Ace-X</h2>
+            <Link href="/profile">
+              <p className="ml-4 py-1 px-3 bg-gray-200 text-gray-800 rounded hover:bg-purple-500 hover:text-white font-bold text-sm">
+                Profile
+              </p>
+            </Link>
+          </div>
+        </nav>
+      )}
       <div className="px-6 md:px-16">
         <h1 className="text-center text-[clamp(2rem,10vmin,10rem)] font-bold leading-none">
           {showTagline1 && (
@@ -125,7 +138,7 @@ const Onboard = () => {
           <div className="restContent grid min-h-[80vh] grid-cols-1 md:grid-cols-2 items-center opacity-0">
             <ViewCanvas />
             <section className="col-start-1 md:row-start-1">
-              <SignInForm />
+              <OnboardForm />
             </section>
           </div>
         )}

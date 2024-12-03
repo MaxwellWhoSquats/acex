@@ -1,61 +1,118 @@
-import React, { useState } from "react";
+"use client";
+import React, { useLayoutEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
 
 const BlackjackGame = () => {
-  const [dealtCards, setDealtCards] = useState([]);
-  const deck = [
-    "ace_of_spades",
-    "2_of_spades",
-    "3_of_spades",
-    "4_of_spades",
-    "5_of_spades",
-    "6_of_spades",
-    "7_of_spades",
-    "8_of_spades",
-    "9_of_spades",
-    "10_of_spades",
-    "jack_of_spades",
-    "queen_of_spades",
-    "king_of_spades",
-    "ace_of_hearts",
-    "2_of_hearts",
-    "3_of_hearts",
-    "4_of_hearts",
-    "5_of_hearts",
-    "6_of_hearts",
-    "7_of_hearts",
-    "8_of_hearts",
-    "9_of_hearts",
-    "10_of_hearts",
-    "jack_of_hearts",
-    "queen_of_hearts",
-    "king_of_hearts",
-    "ace_of_clubs",
-    "2_of_clubs",
-    "3_of_clubs",
-    "4_of_clubs",
-    "5_of_clubs",
-    "6_of_clubs",
-    "7_of_clubs",
-    "8_of_clubs",
-    "9_of_clubs",
-    "10_of_clubs",
-    "jack_of_clubs",
-    "queen_of_clubs",
-    "king_of_clubs",
-    "ace_of_diamonds",
-    "2_of_diamonds",
-    "3_of_diamonds",
-    "4_of_diamonds",
-    "5_of_diamonds",
-    "6_of_diamonds",
-    "7_of_diamonds",
-    "8_of_diamonds",
-    "9_of_diamonds",
-    "10_of_diamonds",
-    "jack_of_diamonds",
-    "queen_of_diamonds",
-    "king_of_diamonds",
-  ];
+  const cardRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const deckRef = useRef<HTMLImageElement>(null);
+
+  // State to manage animation status
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Desired position percentages
+  const DESIRED_LEFT_PERCENT = 0.5;
+  const DESIRED_TOP_PERCENT = 0.8;
+
+  const handleBetClick = () => {
+    const main = mainRef.current;
+    const deck = deckRef.current;
+    const card = cardRef.current;
+
+    if (!main || !deck || !card || isAnimating) return;
+
+    setIsAnimating(true); // Start animation
+
+    // Calculate positions
+    const mainRect = main.getBoundingClientRect();
+    const deckRect = deck.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+
+    // Desired final position based on percentages
+    const desiredLeft =
+      mainRect.width * DESIRED_LEFT_PERCENT - cardRect.width / 2;
+    const desiredTop =
+      mainRect.height * DESIRED_TOP_PERCENT - cardRect.height / 2;
+
+    // Current position of the card relative to <main> (it's over the deck)
+    const currentLeft = deckRect.left - mainRect.left;
+    const currentTop = deckRect.top - mainRect.top;
+
+    // Calculate relative movement
+    const targetX = desiredLeft - currentLeft;
+    const targetY = desiredTop - currentTop;
+
+    console.log("handleBetClick - TargetX:", targetX, "TargetY:", targetY);
+
+    // Set card's position to deck's position
+    gsap.set(card, { x: 0, y: 0, opacity: 0 });
+
+    // Animate to target position
+    gsap.to(card, {
+      x: targetX,
+      y: targetY,
+      opacity: 1,
+      duration: 1,
+      ease: "power3.out",
+      onComplete: () => setIsAnimating(false), // End animation
+    });
+  };
+
+  // Window resizing preparedness functionality
+  useLayoutEffect(() => {
+    const handleResize = () => {
+      const main = mainRef.current;
+      const deck = deckRef.current;
+      const card = cardRef.current;
+
+      if (!main || !deck || !card) return;
+
+      const mainRect = main.getBoundingClientRect();
+      const deckRect = deck.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+
+      // Desired final position based on percentages
+      const desiredLeft =
+        mainRect.width * DESIRED_LEFT_PERCENT - cardRect.width / 2;
+      const desiredTop =
+        mainRect.height * DESIRED_TOP_PERCENT - cardRect.height / 2;
+
+      // Current position of the card relative to <main> (it's over the deck)
+      const currentLeft = deckRect.left - mainRect.left;
+      const currentTop = deckRect.top - mainRect.top;
+
+      // Calculate relative movement
+      const targetX = desiredLeft - currentLeft;
+      const targetY = desiredTop - currentTop;
+
+      console.log("handleResize - TargetX:", targetX, "TargetY:", targetY);
+
+      gsap.to(card, {
+        x: targetX,
+        y: targetY,
+        duration: 1,
+        ease: "power3.out",
+      });
+    };
+
+    // Debounce function to limit the rate at which a function can fire.
+    const debounce = (func: Function, delay: number) => {
+      let timer: NodeJS.Timeout;
+      return (...args: any[]) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => func(...args), delay);
+      };
+    };
+
+    const debouncedHandleResize = debounce(handleResize, 200);
+
+    window.addEventListener("resize", debouncedHandleResize);
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener("resize", debouncedHandleResize);
+    };
+  }, []);
 
   return (
     <div className="flex flex-1">
@@ -67,7 +124,7 @@ const BlackjackGame = () => {
               className="w-full bg-transparent outline-none text-white"
               placeholder="0.00"
             />
-            <img src="/coin.png" className="w-7 h-7 mb-0.5" />
+            <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
           </div>
           <button className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg">
             1/2
@@ -90,15 +147,40 @@ const BlackjackGame = () => {
             Double
           </button>
         </section>
-        <button className="w-full bg-purple-500 p-2 rounded font-bold text-white hover:bg-purple-600 hover:text-gray-300 transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg">
-          Bet
+        <button
+          onClick={handleBetClick}
+          disabled={isAnimating}
+          className={`w-full bg-purple-500 p-2 rounded font-bold text-white hover:bg-purple-600 hover:text-gray-300 transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg ${
+            isAnimating ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          {isAnimating ? "Betting..." : "Bet"}
         </button>
       </aside>
-      <main className="flex-1 bg-slate-800 relative">
+      <main ref={mainRef} className="flex-1 bg-slate-800 relative">
         <img
+          id="deck"
+          ref={deckRef}
           src="/cardback.png"
-          className="w-32 mt-5 mr-5 transform rotate-180 absolute top-0 right-0"
+          className="w-32 transform absolute top-0 right-0 z-0"
+          alt="Card Back"
         />
+        <div
+          id="card"
+          ref={cardRef}
+          className="absolute z-10"
+          style={{
+            top: 0,
+            right: 0,
+            opacity: 0,
+          }}
+        >
+          <img
+            src="/cardback.png"
+            className="w-32 transform"
+            alt="Animated Card Back"
+          />
+        </div>
       </main>
     </div>
   );

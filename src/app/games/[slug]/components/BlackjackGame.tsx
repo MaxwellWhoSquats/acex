@@ -1,20 +1,23 @@
 "use client";
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
+import { useBlackjack } from "./Blackjack/blackjack";
 
 const BlackjackGame = () => {
   const cardRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<HTMLImageElement>(null);
-
-  // State to manage animation status
+  const { dealCards } = useBlackjack();
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   // Desired position percentages
   const DESIRED_LEFT_PERCENT = 0.5;
   const DESIRED_TOP_PERCENT = 0.8;
 
   const handleBetClick = () => {
+    dealCards();
+
     const main = mainRef.current;
     const deck = deckRef.current;
     const card = cardRef.current;
@@ -44,17 +47,31 @@ const BlackjackGame = () => {
 
     console.log("handleBetClick - TargetX:", targetX, "TargetY:", targetY);
 
-    // Set card's position to deck's position
-    gsap.set(card, { x: 0, y: 0, opacity: 0 });
-
     // Animate to target position
+    gsap.fromTo(
+      card,
+      { x: 0, y: 0, opacity: 0 },
+      {
+        x: targetX,
+        y: targetY,
+        opacity: 1,
+        duration: 1,
+        ease: "power3.out",
+      }
+    );
+
+    // Determine the new rotation value
+    const newRotation = isFlipped ? 0 : 180;
+
+    // Animate card flip
     gsap.to(card, {
-      x: targetX,
-      y: targetY,
-      opacity: 1,
-      duration: 1,
-      ease: "power3.out",
-      onComplete: () => setIsAnimating(false), // End animation
+      rotateY: newRotation,
+      duration: 0.5,
+      delay: 0.5,
+      onComplete: () => {
+        setIsAnimating(false); // End animation
+        setIsFlipped(!isFlipped); // Toggle flip state
+      },
     });
   };
 

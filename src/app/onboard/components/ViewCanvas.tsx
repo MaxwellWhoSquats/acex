@@ -29,7 +29,7 @@ export default function ViewCanvas({}: Props) {
     <Canvas
       style={{
         top: 0,
-        left: "60%",
+        left: "50%",
         transform: "translateX(-50%)",
         overflow: "hidden",
         pointerEvents: "none",

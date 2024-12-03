@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState, useRef } from "react";
 import { gsap } from "gsap";
 import ViewCanvas from "./components/ViewCanvas";
 import OnboardForm from "./components/OnboardForm";
@@ -8,8 +8,9 @@ const Onboard = () => {
   const [showTagline1, setShowTagline1] = useState(true);
   const [showTagline2, setShowTagline2] = useState(true);
   const [showRest, setShowRest] = useState(false);
+  const containerRef = useRef(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let ctx = gsap.context(() => {
       const tl = gsap.timeline();
 
@@ -67,12 +68,13 @@ const Onboard = () => {
         },
         "+=0.4"
       );
-    });
+    }, containerRef);
+
     return () => ctx.revert();
   }, []);
 
   // Animate the rest of the content
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (showRest) {
       gsap.to(".restContent", {
         opacity: 1,
@@ -97,21 +99,21 @@ const Onboard = () => {
   }, [showRest]);
 
   const renderLetters = (name: string) => {
-    if (!name) return;
+    if (!name) return null;
 
     return name.split("").map((char, index) => (
-      <span key={index} className={"inline-block opacity-0"}>
+      <span key={index} className="inline-block opacity-0">
         {char === " " ? "\u00A0" : char}
       </span>
     ));
   };
 
   return (
-    <>
+    <div ref={containerRef}>
       {showRest && (
         <nav className="mt-6 mx-6 md:mx-9 topBar flex items-center opacity-0">
           <img src="/logo.png" alt="Logo" className="w-20" />
-          <div className="p-2 px-4 flex w-full rounded-lg shadow-lg justify-between items-center">
+          <div className="p-2 px-4 flex rounded-lg shadow-lg justify-between items-center">
             <h2 className="font-bold text-2xl">Ace-X</h2>
           </div>
         </nav>
@@ -138,7 +140,7 @@ const Onboard = () => {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

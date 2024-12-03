@@ -1,4 +1,6 @@
+import Link from "next/link";
 import React from "react";
+import games from "@/data/games.json";
 
 const GameBar = () => {
   return (
@@ -18,9 +20,13 @@ const GameBar = () => {
           </div>
         </section>
         <div className="flex space-x-3 mx-5 mt-8">
-          <div className="w-36 h-56 bg-slate-700 rounded transition hover:opacity-50 duration-300 ease-in-out transform hover:scale-105"></div>
-          <div className="w-36 h-56 bg-slate-700 rounded transition hover:opacity-50 duration-300 ease-in-out transform hover:scale-105"></div>
-          <div className="w-36 h-56 bg-slate-700 rounded transition hover:opacity-50 duration-300 ease-in-out transform hover:scale-105"></div>
+          {games.map((game) => (
+            <Link
+              key={game.slug}
+              href={`/games/${game.slug}`}
+              className="w-32 h-56 bg-slate-700 text-white rounded shadow hover:scale-105 hover:opacity-50 transition ease-in-out"
+            ></Link>
+          ))}
         </div>
       </div>
     </>

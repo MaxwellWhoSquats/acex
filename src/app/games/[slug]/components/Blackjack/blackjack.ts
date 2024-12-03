@@ -1,3 +1,4 @@
+// blackjack.ts
 import { useState } from "react";
 
 function createCardNames() {
@@ -63,7 +64,7 @@ export const useBlackjack = () => {
   const [gameOver, setGameOver] = useState<boolean>(false);
   const cards = createCardNames();
 
-  const dealCards = () => {
+  const dealCards = (): string[] => { // Specify return type as string[]
     const newPlayerHand = [
       cards[Math.floor(Math.random() * cards.length)],
       cards[Math.floor(Math.random() * cards.length)],
@@ -86,6 +87,8 @@ export const useBlackjack = () => {
       setPlayerHas21(true);
       console.log("Player has Blackjack!");
     }
+
+    return newPlayerHand; // Return the new player hand
   };
 
   const hit = () => {

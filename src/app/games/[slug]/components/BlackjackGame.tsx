@@ -1,3 +1,4 @@
+// BlackjackGame.tsx
 "use client";
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
@@ -7,75 +8,15 @@ const BlackjackGame = () => {
   const cardRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<HTMLImageElement>(null);
-  const { dealCards } = useBlackjack();
+  const { dealCards, playerHand } = useBlackjack();
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [cardFace, setCardFace] = useState("cardback.png");
 
   // Desired position percentages
   const DESIRED_LEFT_PERCENT = 0.5;
   const DESIRED_TOP_PERCENT = 0.8;
 
-  const handleBetClick = () => {
-    dealCards();
-
-    const main = mainRef.current;
-    const deck = deckRef.current;
-    const card = cardRef.current;
-
-    if (!main || !deck || !card || isAnimating) return;
-
-    setIsAnimating(true); // Start animation
-
-    // Calculate positions
-    const mainRect = main.getBoundingClientRect();
-    const deckRect = deck.getBoundingClientRect();
-    const cardRect = card.getBoundingClientRect();
-
-    // Desired final position based on percentages
-    const desiredLeft =
-      mainRect.width * DESIRED_LEFT_PERCENT - cardRect.width / 2;
-    const desiredTop =
-      mainRect.height * DESIRED_TOP_PERCENT - cardRect.height / 2;
-
-    // Current position of the card relative to <main> (it's over the deck)
-    const currentLeft = deckRect.left - mainRect.left;
-    const currentTop = deckRect.top - mainRect.top;
-
-    // Calculate relative movement
-    const targetX = desiredLeft - currentLeft;
-    const targetY = desiredTop - currentTop;
-
-    console.log("handleBetClick - TargetX:", targetX, "TargetY:", targetY);
-
-    // Animate to target position
-    gsap.fromTo(
-      card,
-      { x: 0, y: 0, opacity: 0 },
-      {
-        x: targetX,
-        y: targetY,
-        opacity: 1,
-        duration: 1,
-        ease: "power3.out",
-      }
-    );
-
-    // Determine the new rotation value
-    const newRotation = isFlipped ? 0 : 180;
-
-    // Animate card flip
-    gsap.to(card, {
-      rotateY: newRotation,
-      duration: 0.5,
-      delay: 0.5,
-      onComplete: () => {
-        setIsAnimating(false); // End animation
-        setIsFlipped(!isFlipped); // Toggle flip state
-      },
-    });
-  };
-
-  // Window resizing preparedness functionality
+  // Initialize card rotation and handle window resize
   useLayoutEffect(() => {
     const handleResize = () => {
       const main = mainRef.current;
@@ -129,7 +70,81 @@ const BlackjackGame = () => {
     return () => {
       window.removeEventListener("resize", debouncedHandleResize);
     };
-  }, []);
+  }, []); // Empty dependency array ensures this runs once on mount
+
+  const handleBetClick = () => {
+    if (isAnimating) return; // Prevent multiple animations
+
+    const newPlayerHand = dealCards();
+    const firstCard = newPlayerHand[0];
+    const desiredCardImage = `${firstCard}.png`;
+
+    const main = mainRef.current;
+    const deck = deckRef.current;
+    const card = cardRef.current;
+
+    if (!main || !deck || !card) return;
+
+    setIsAnimating(true); // Start animation
+
+    // Reset cardFace to "cardback.png" before starting the animation
+    setCardFace("cardback.png");
+
+    gsap.set(card, { rotateY: 0 });
+
+    // Calculate positions
+    const mainRect = main.getBoundingClientRect();
+    const deckRect = deck.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+
+    // Desired final position based on percentages
+    const desiredLeft =
+      mainRect.width * DESIRED_LEFT_PERCENT - cardRect.width / 2;
+    const desiredTop =
+      mainRect.height * DESIRED_TOP_PERCENT - cardRect.height / 2;
+
+    // Current position of the card relative to <main> (it's over the deck)
+    const currentLeft = deckRect.left - mainRect.left;
+    const currentTop = deckRect.top - mainRect.top;
+
+    // Calculate relative movement
+    const targetX = desiredLeft - currentLeft;
+    const targetY = desiredTop - currentTop;
+
+    console.log("handleBetClick - TargetX:", targetX, "TargetY:", targetY);
+
+    const timeline = gsap.timeline({
+      onComplete: () => setIsAnimating(false),
+    });
+
+    timeline
+      // Move the card from the deck to the desired position with opacity transition
+      .fromTo(
+        card,
+        { x: 0, y: 0, opacity: 0 },
+        {
+          x: targetX,
+          y: targetY,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power3.out",
+        }
+      )
+      // Rotate to 90 degrees (mid-flip)
+      .to(card, {
+        rotateY: 90,
+        duration: 0.4,
+        ease: "power3.out",
+      })
+      // Change the card face once it's halfway flipped
+      .add(() => setCardFace(desiredCardImage))
+      // Complete the flip to 0 degrees (front facing)
+      .to(card, {
+        rotateY: 0,
+        duration: 0.2,
+        ease: "power3.in",
+      });
+  };
 
   return (
     <div className="flex flex-1">
@@ -178,7 +193,7 @@ const BlackjackGame = () => {
         <img
           id="deck"
           ref={deckRef}
-          src="/cardback.png"
+          src="/textures/faces/cardback.png"
           className="w-32 transform absolute top-0 right-0 z-0"
           alt="Card Back"
         />
@@ -190,12 +205,13 @@ const BlackjackGame = () => {
             top: 0,
             right: 0,
             opacity: 0,
+            transform: "rotateY(0deg)", // Ensure initial rotation
           }}
         >
           <img
-            src="/cardback.png"
+            src={`/textures/faces/${cardFace}`}
             className="w-32 transform"
-            alt="Animated Card Back"
+            alt="Animated Card"
           />
         </div>
       </main>

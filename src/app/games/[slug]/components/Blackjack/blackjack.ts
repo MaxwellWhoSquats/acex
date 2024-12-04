@@ -57,14 +57,30 @@ function handValue(hand: string[]) {
   return value;
 }
 
-export const useBlackjack = () => {
+function dealerFaceUpCardValue(hand: string[]) {
+  const card = hand[1];
+  const cardValue = card.split("_")[0];
+
+  if (["jack", "queen", "king"].includes(cardValue)) {
+    return 10;
+  } else if (cardValue === "ace") {
+    return 11;
+  } else {
+    return parseInt(cardValue);
+  }
+
+}
+
+export const useBlackjack = (bet: number) => {
   const [playerHand, setPlayerHand] = useState<string[]>([]);
   const [dealerHand, setDealerHand] = useState<string[]>([]);
   const [playerHas21, setPlayerHas21] = useState<boolean>(false);
   const [gameOver, setGameOver] = useState<boolean>(false);
+  const [displayActions, setDisplayActions] = useState("");
   const cards = createCardNames();
 
-  const dealCards = (): string[] => { // Specify return type as string[]
+
+  function dealCards(): { playerHand: string[]; dealerHand: string[]; playerScore: number; dealerScore: number; dealerFaceUpCard: number } {
     const newPlayerHand = [
       cards[Math.floor(Math.random() * cards.length)],
       cards[Math.floor(Math.random() * cards.length)],
@@ -80,18 +96,32 @@ export const useBlackjack = () => {
     console.log("Player hand:", newPlayerHand);
     console.log("Dealer hand:", newDealerHand);
 
-    const playerValue = handValue(newPlayerHand);
-    const dealerValue = handValue(newDealerHand);
+    const playerScore = handValue(newPlayerHand);
+    const dealerScore = handValue(newDealerHand);
+    const dealerFaceUpCard = dealerFaceUpCardValue(newDealerHand);
 
-    if (playerValue === 21) {
-      setPlayerHas21(true);
-      console.log("Player has Blackjack!");
-    }
-
-    return newPlayerHand; // Return the new player hand
+    return { 
+      playerHand: newPlayerHand, 
+      dealerHand: newDealerHand, 
+      playerScore, 
+      dealerScore,
+      dealerFaceUpCard,
+    };
   };
 
-  const hit = () => {
+  function playerTurn() {
+    const playerValue = handValue(playerHand);
+    if (playerValue > 21) {
+      setGameOver(true);
+    } else if (playerValue === 21) {
+      setPlayerHas21(true);
+      setGameOver(true);
+    }
+
+  }
+
+
+  function hit() {
     if (gameOver) return;
 
     const newCard = cards[Math.floor(Math.random() * cards.length)];
@@ -110,11 +140,13 @@ export const useBlackjack = () => {
     });
   };
 
+
   return {
     playerHand,
     dealerHand,
     dealCards,
     hit,
+    handValue,
     playerHas21,
     gameOver,
   };

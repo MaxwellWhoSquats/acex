@@ -10,8 +10,8 @@ import { useSession } from "next-auth/react";
 import axios from "axios";
 
 interface BalanceContextProps {
-  balance: number;
-  setBalance: (newBalance: number) => void;
+  balance: number | string;
+  setBalance: (newBalance: number | string) => void;
   updateBalance: (amount: number) => Promise<void>;
 }
 
@@ -21,7 +21,7 @@ const BalanceContext = createContext<BalanceContextProps | undefined>(
 
 export const BalanceProvider = ({ children }: { children: ReactNode }) => {
   const { data: session } = useSession();
-  const [balance, setBalance] = useState<number>(0);
+  const [balance, setBalance] = useState<number | string>("...");
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -38,7 +38,7 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
   }, [session]);
 
   const updateBalance = async (amount: number) => {
-    if (!session?.user?.email) return;
+    if (!session?.user?.email || typeof balance !== "number") return;
 
     const newBalance = balance + amount;
     setBalance(newBalance);

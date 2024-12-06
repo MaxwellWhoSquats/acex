@@ -1,7 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
-import { useBlackjack } from "./blackjack";
 import Card from "./Card";
 
 interface boardSize {
@@ -80,22 +79,40 @@ export const Test = () => {
         <img
           id="deck"
           src="/textures/faces/cardback.png"
-          className="w-32 transform absolute top-0 right-0 z-0"
+          className="w-24 transform absolute top-0 right-0 z-0"
           alt="Card Back"
         />
         <Card
-          cardName="ace_of_hearts"
+          cardName="jack_of_hearts"
           person="player"
           index={0}
           animate={shouldAnimate}
           boardSize={boardSize}
+          delay={0}
         />
         <Card
-          cardName="ace_of_spades"
+          cardName="8_of_diamonds"
           person="dealer"
           index={0}
           animate={shouldAnimate}
           boardSize={boardSize}
+          delay={0.5}
+        />
+        <Card
+          cardName="9_of_diamonds"
+          person="player"
+          index={1}
+          animate={shouldAnimate}
+          boardSize={boardSize}
+          delay={1}
+        />
+        <Card
+          cardName="2_of_clubs"
+          person="dealer"
+          index={1}
+          animate={shouldAnimate}
+          boardSize={boardSize}
+          delay={1.5}
         />
       </main>
     </div>

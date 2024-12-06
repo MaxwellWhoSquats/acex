@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import Card from "./Card";
+import { useBlackjack } from "./testblackjack";
 
 interface boardSize {
   width: number;
@@ -15,6 +16,10 @@ export const Test = () => {
     width: 0,
     height: 0,
   });
+  const [playerHand, setPlayerHand] = useState<string[]>([]);
+  const [dealerHand, setDealerHand] = useState<string[]>([]);
+
+  const { dealCards } = useBlackjack(10);
 
   // Handle resizing of the window
   useEffect(() => {
@@ -32,6 +37,10 @@ export const Test = () => {
   }, []);
 
   function handleBetButtonClick() {
+    const { playerHand, dealerHand } = dealCards();
+    setPlayerHand(playerHand);
+    setDealerHand(dealerHand);
+
     setShouldAnimate(true);
   }
 
@@ -83,7 +92,7 @@ export const Test = () => {
           alt="Card Back"
         />
         <Card
-          cardName="jack_of_hearts"
+          cardName={playerHand[0]}
           person="player"
           index={0}
           animate={shouldAnimate}
@@ -91,7 +100,7 @@ export const Test = () => {
           delay={0}
         />
         <Card
-          cardName="8_of_diamonds"
+          cardName={dealerHand[0]}
           person="dealer"
           index={0}
           animate={shouldAnimate}
@@ -99,7 +108,7 @@ export const Test = () => {
           delay={0.5}
         />
         <Card
-          cardName="9_of_diamonds"
+          cardName={playerHand[1]}
           person="player"
           index={1}
           animate={shouldAnimate}
@@ -107,7 +116,7 @@ export const Test = () => {
           delay={1}
         />
         <Card
-          cardName="2_of_clubs"
+          cardName={dealerHand[1]}
           person="dealer"
           index={1}
           animate={shouldAnimate}

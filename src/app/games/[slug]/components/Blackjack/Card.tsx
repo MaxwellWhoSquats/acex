@@ -35,8 +35,8 @@ const Card = ({
 
       const VERTICAL_OFFSET_PERCENTAGE = percentageOffsets[person] || 0;
 
-      const INDEX_OFFSET_X = 0.05;
-      const INDEX_OFFSET_Y = 0.05;
+      const INDEX_OFFSET_X = 0.03;
+      const INDEX_OFFSET_Y = 0.03;
 
       // Calculate targetY based on the center plus the percentage offset
       const targetY =

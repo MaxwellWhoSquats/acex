@@ -78,7 +78,7 @@ export const useBlackjack = (bet: number) => {
   const cards = createCardNames();
 
 
-  function dealCards(): { playerHand: string[]; dealerHand: string[]; playerScore: number; dealerScore: number; dealerFaceUpCard: number } {
+  function dealCards(): void {
     const newPlayerHand = [
       cards[Math.floor(Math.random() * cards.length)],
       cards[Math.floor(Math.random() * cards.length)],
@@ -97,27 +97,7 @@ export const useBlackjack = (bet: number) => {
     const playerScore = handValue(newPlayerHand);
     const dealerScore = handValue(newDealerHand);
     const dealerFaceUpCard = dealerFaceUpCardValue(newDealerHand);
-
-    return { 
-      playerHand: newPlayerHand, 
-      dealerHand: newDealerHand, 
-      playerScore, 
-      dealerScore,
-      dealerFaceUpCard,
-    };
   };
-
-  function playerTurn() {
-    const playerValue = handValue(playerHand);
-    if (playerValue > 21) {
-      setGameOver(true);
-    } else if (playerValue === 21) {
-      setPlayerHas21(true);
-      setGameOver(true);
-    }
-
-  }
-
 
   function hit() {
     if (gameOver) return;

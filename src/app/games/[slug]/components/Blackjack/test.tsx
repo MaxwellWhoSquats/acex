@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import { gsap } from "gsap";
 import Card from "./Card";
 import { useBlackjack } from "./testblackjack";
@@ -16,10 +16,8 @@ export const Test = () => {
     width: 0,
     height: 0,
   });
-  const [playerHand, setPlayerHand] = useState<string[]>([]);
-  const [dealerHand, setDealerHand] = useState<string[]>([]);
 
-  const { dealCards } = useBlackjack(10);
+  const { dealCards, playerHand, dealerHand } = useBlackjack(10);
 
   // Handle resizing of the window
   useEffect(() => {
@@ -37,9 +35,7 @@ export const Test = () => {
   }, []);
 
   function handleBetButtonClick() {
-    const { playerHand, dealerHand } = dealCards();
-    setPlayerHand(playerHand);
-    setDealerHand(dealerHand);
+    dealCards();
 
     setShouldAnimate(true);
   }

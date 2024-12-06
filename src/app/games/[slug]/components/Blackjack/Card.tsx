@@ -26,6 +26,7 @@ const Card = ({
   useEffect(() => {
     if (animate && boardSize.width && boardSize.height) {
       const cardSelector = `#${person}-card-${index}`;
+      setFace("/textures/faces/cardback.png");
 
       // Percentage offsets depending on person type
       const percentageOffsets: { [key: string]: number } = {
@@ -51,6 +52,13 @@ const Card = ({
 
       const timeline = gsap.timeline({
         delay,
+        onStart: () => {
+          const dealSound = new Audio("/sounds/dealSound.ogg");
+          dealSound.volume = 0.2;
+          dealSound.play().catch((error: any) => {
+            console.error("Error playing deal sound", error);
+          });
+        },
         onComplete: () => {},
       });
 
@@ -70,7 +78,7 @@ const Card = ({
           .to(cardSelector, { rotateY: 0, duration: 0.2, ease: "power3.out" });
       }
     }
-  }, [animate, cardName, person, index, boardSize, delay]);
+  }, [animate, cardName, person, index, delay]);
 
   return (
     <div id={`${person}-card-${index}`} className="top-0 right-0 absolute">

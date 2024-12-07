@@ -5,7 +5,7 @@ import games from "@/data/games.json";
 const GameBar = () => {
   return (
     <>
-      <div className="mt-6 mx-6 md:mx-16 min-h-[80vh] border border-slate-600 rounded">
+      <div className="mt-6 mx-6 md:mx-24 lg:mx-56 min-h-[80vh] border border-slate-600 rounded">
         <section
           id="heading"
           className="flex items-center ml-5 mt-5 pb-3 space-x-6 border-b border-slate-600 w-max"

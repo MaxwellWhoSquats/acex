@@ -1,23 +1,32 @@
 "use client";
-import { useState, useRef, useEffect, use } from "react";
-import { gsap } from "gsap";
+import React, { useState, useRef, useEffect } from "react";
 import Card from "./Card";
 import { useBlackjack } from "./testblackjack";
 
-interface boardSize {
+interface BoardSize {
   width: number;
   height: number;
 }
 
-export const Test = () => {
-  const [shouldAnimate, setShouldAnimate] = useState(false);
+const Test = () => {
   const boardRef = useRef<HTMLDivElement>(null);
-  const [boardSize, setBoardSize] = useState<boardSize>({
+  const [boardSize, setBoardSize] = useState<BoardSize>({
     width: 0,
     height: 0,
   });
+  const [showGameMessage, setShowGameMessage] = useState(false);
 
-  const { dealCards, playerHand, dealerHand } = useBlackjack(10);
+  const {
+    dealCards,
+    hit,
+    stand,
+    playerHand,
+    dealerHand,
+    gameOver,
+    gameStarted,
+    dealerTurn,
+    winnerMessage,
+  } = useBlackjack();
 
   // Handle resizing of the window
   useEffect(() => {
@@ -34,10 +43,109 @@ export const Test = () => {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
+  // Delay game message until animation is complete
+  useEffect(() => {
+    if (gameOver) {
+      const delay = setTimeout(() => setShowGameMessage(true), 1500);
+
+      return () => clearTimeout(delay);
+    } else {
+      setShowGameMessage(false); // Reset
+    }
+  }, [gameOver]);
+
   function handleBetButtonClick() {
     dealCards();
+  }
 
-    setShouldAnimate(true);
+  function handleHitButtonClick() {
+    hit();
+  }
+
+  function handleStandButtonClick() {
+    stand();
+  }
+
+  function renderInitialCards() {
+    const initialCards = [];
+
+    for (let i = 0; i < 2; i++) {
+      if (playerHand[i]) {
+        initialCards.push(
+          <Card
+            key={`player-${playerHand[i].id}`}
+            card={playerHand[i]}
+            person="player"
+            index={i}
+            boardSize={boardSize}
+            delay={i * 1}
+          />
+        );
+      }
+
+      if (dealerHand[i] && i !== 1) {
+        initialCards.push(
+          <Card
+            key={`dealer-${dealerHand[i].id}`}
+            card={dealerHand[i]}
+            person="dealer"
+            index={i}
+            boardSize={boardSize}
+            delay={i * 1 + 0.5}
+          />
+        );
+      }
+      if (dealerHand[i] && i === 1) {
+        initialCards.push(
+          <Card
+            key={`dealer-${dealerHand[i].id}`}
+            card={dealerHand[i]}
+            person="dealer"
+            index={i}
+            boardSize={boardSize}
+            delay={i * 1 + 0.5}
+            flipDealerCard={dealerTurn}
+          />
+        );
+      }
+    }
+    return initialCards;
+  }
+
+  function renderHitCards() {
+    console.log(playerHand);
+    return playerHand
+      .slice(2)
+      .map((card, index) => (
+        <Card
+          key={`player-${card.id}`}
+          card={card}
+          person="player"
+          index={index + 2}
+          boardSize={boardSize}
+          delay={0.3}
+        />
+      ));
+  }
+
+  function renderStandCards() {
+    return dealerHand
+      .slice(2)
+      .map((card, index) => (
+        <Card
+          key={`dealer-${card.id}`}
+          card={card}
+          person="dealer"
+          index={index + 2}
+          boardSize={boardSize}
+          delay={0.3}
+        />
+      ));
+  }
+
+  function getGameOutcomeMessage() {
+    if (!gameOver) return null;
+    return winnerMessage;
   }
 
   return (
@@ -60,22 +168,57 @@ export const Test = () => {
           </button>
         </section>
         <section id="blackjack-actions" className="grid grid-cols-2 gap-2 mb-3">
-          <button className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg">
+          <button
+            onClick={handleHitButtonClick}
+            disabled={!gameStarted}
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
+              gameStarted
+                ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
+            }`}
+          >
             Hit
           </button>
-          <button className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg">
+          <button
+            onClick={handleStandButtonClick}
+            disabled={!gameStarted}
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
+              gameStarted
+                ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
+            }`}
+          >
             Stand
           </button>
-          <button className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg">
+          <button
+            disabled={!gameStarted}
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
+              gameStarted
+                ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
+            }`}
+          >
             Split
           </button>
-          <button className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg">
+          <button
+            disabled={!gameStarted}
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
+              gameStarted
+                ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
+            }`}
+          >
             Double
           </button>
         </section>
         <button
           onClick={handleBetButtonClick}
-          className="w-full bg-purple-500 p-2 rounded font-bold text-white hover:bg-purple-600 hover:text-gray-300 transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg"
+          disabled={gameStarted}
+          className={`w-full bg-purple-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg ${
+            gameStarted
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-purple-600 hover:text-gray-300 cursor-pointer"
+          }`}
         >
           Bet
         </button>
@@ -87,38 +230,15 @@ export const Test = () => {
           className="w-24 transform absolute top-0 right-0 z-0"
           alt="Card Back"
         />
-        <Card
-          cardName={playerHand[0]}
-          person="player"
-          index={0}
-          animate={shouldAnimate}
-          boardSize={boardSize}
-          delay={0}
-        />
-        <Card
-          cardName={dealerHand[0]}
-          person="dealer"
-          index={0}
-          animate={shouldAnimate}
-          boardSize={boardSize}
-          delay={0.5}
-        />
-        <Card
-          cardName={playerHand[1]}
-          person="player"
-          index={1}
-          animate={shouldAnimate}
-          boardSize={boardSize}
-          delay={1}
-        />
-        <Card
-          cardName={dealerHand[1]}
-          person="dealer"
-          index={1}
-          animate={shouldAnimate}
-          boardSize={boardSize}
-          delay={1.5}
-        />
+        {renderInitialCards()}
+        {renderHitCards()}
+        {renderStandCards()}
+
+        {showGameMessage && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-75 text-white p-4 rounded">
+            {getGameOutcomeMessage()}
+          </div>
+        )}
       </main>
     </div>
   );

@@ -16,19 +16,33 @@ const Test = () => {
   });
   const [showGameMessage, setShowGameMessage] = useState(false);
 
+  // Animation tracking
+  const [initialAnimationComplete, setInitialAnimationComplete] =
+    useState(false);
+  const [initialDealCardsCount, setInitialDealCardsCount] = useState(0);
+  const [hitCardsCount, setHitCardsCount] = useState(0);
+  const [standCardsCount, setStandCardsCount] = useState(0);
+
   const {
     dealCards,
     hit,
     stand,
+    handValue,
     playerHand,
     dealerHand,
-    gameOver,
+    playerScore,
+    dealerScore,
     gameStarted,
     dealerTurn,
     winnerMessage,
+    dealerDoneDrawing,
   } = useBlackjack();
 
-  // Handle resizing of the window
+  const [displayedPlayerScore, setDisplayedPlayerScore] = useState<number>(0);
+  const [displayedDealerScore, setDisplayedDealerScore] = useState<number>(0);
+  const [localGameOver, setLocalGameOver] = useState(false);
+  const [canPlayerAct, setCanPlayerAct] = useState(false);
+
   useEffect(() => {
     const updateSize = () => {
       if (boardRef.current) {
@@ -39,36 +53,141 @@ const Test = () => {
 
     updateSize();
     window.addEventListener("resize", updateSize);
-
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // Delay game message until animation is complete
+  // Show game message after localGameOver
   useEffect(() => {
-    if (gameOver) {
+    if (localGameOver) {
       const delay = setTimeout(() => setShowGameMessage(true), 1500);
-
       return () => clearTimeout(delay);
     } else {
-      setShowGameMessage(false); // Reset
+      setShowGameMessage(false);
     }
-  }, [gameOver]);
+  }, [localGameOver]);
 
   function handleBetButtonClick() {
+    setInitialAnimationComplete(false);
+    setInitialDealCardsCount(0);
+    setHitCardsCount(0);
+    setStandCardsCount(0);
+    setLocalGameOver(false);
+    setCanPlayerAct(false);
+
     dealCards();
   }
 
   function handleHitButtonClick() {
+    if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
+    setCanPlayerAct(false);
     hit();
   }
 
   function handleStandButtonClick() {
+    if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
+    setCanPlayerAct(false);
     stand();
   }
+
+  function handleInitialCardAnimationComplete() {
+    // Called after each initial card finishes its initial deal animation
+    setInitialDealCardsCount((prev) => {
+      const newCount = prev + 1;
+      if (newCount === 4) {
+        // All initial cards done
+        setInitialAnimationComplete(true);
+        setDisplayedPlayerScore(playerScore);
+
+        if (winnerMessage && winnerMessage.length > 0) {
+          // Immediate outcome (like initial blackjack)
+          setDisplayedDealerScore(dealerScore);
+          setLocalGameOver(true);
+        } else if (!dealerTurn) {
+          // Show partial dealer score (just first card)
+          if (dealerHand[0]) {
+            setDisplayedDealerScore(handValue([dealerHand[0].name]));
+          }
+          setCanPlayerAct(true);
+        } else {
+          // dealerTurn is true after initial deal
+          setDisplayedDealerScore(dealerScore);
+          if (!winnerMessage) {
+            setCanPlayerAct(true);
+          }
+        }
+      }
+      return newCount;
+    });
+  }
+
+  function handleHitCardAnimationComplete() {
+    // Called after each hit card finishes its animation
+    setHitCardsCount((prev) => {
+      const newCount = prev + 1;
+      setDisplayedPlayerScore(playerScore);
+
+      // If player hits 21
+      if (playerScore === 21 && !winnerMessage && !localGameOver) {
+        setTimeout(() => {
+          if (!winnerMessage && !localGameOver) {
+            setCanPlayerAct(false);
+            stand();
+          }
+        }, 1000);
+      } else {
+        if (playerScore < 21 && !winnerMessage && !localGameOver) {
+          setCanPlayerAct(true);
+        }
+      }
+
+      return newCount;
+    });
+  }
+
+  function handleStandCardAnimationComplete() {
+    setStandCardsCount((prev) => {
+      const newCount = prev + 1;
+      if (!localGameOver) {
+        setDisplayedDealerScore(dealerScore);
+      }
+      return newCount;
+    });
+  }
+
+  // New callback specifically for updating score after the dealer's second card is flipped
+  function updateScoreDealerSecondCard() {
+    // Called once the dealer's face-down card has finished flipping
+    setDisplayedDealerScore(dealerScore);
+  }
+
+  // Finalize the game once all dealer cards are done and we have a winnerMessage
+  useEffect(() => {
+    const dealerDrawnCards = dealerHand.length - 2;
+    if (
+      initialAnimationComplete &&
+      winnerMessage &&
+      !localGameOver &&
+      standCardsCount === dealerDrawnCards &&
+      dealerDoneDrawing
+    ) {
+      setLocalGameOver(true);
+    }
+  }, [
+    initialAnimationComplete,
+    winnerMessage,
+    localGameOver,
+    standCardsCount,
+    dealerHand.length,
+    dealerDoneDrawing,
+  ]);
+
+  const shouldShowFullDealerScore =
+    dealerTurn || (winnerMessage && winnerMessage.length > 0);
 
   function renderInitialCards() {
     const initialCards = [];
 
+    // Player's initial cards
     for (let i = 0; i < 2; i++) {
       if (playerHand[i]) {
         initialCards.push(
@@ -79,41 +198,48 @@ const Test = () => {
             index={i}
             boardSize={boardSize}
             delay={i * 1}
-          />
-        );
-      }
-
-      if (dealerHand[i] && i !== 1) {
-        initialCards.push(
-          <Card
-            key={`dealer-${dealerHand[i].id}`}
-            card={dealerHand[i]}
-            person="dealer"
-            index={i}
-            boardSize={boardSize}
-            delay={i * 1 + 0.5}
-          />
-        );
-      }
-      if (dealerHand[i] && i === 1) {
-        initialCards.push(
-          <Card
-            key={`dealer-${dealerHand[i].id}`}
-            card={dealerHand[i]}
-            person="dealer"
-            index={i}
-            boardSize={boardSize}
-            delay={i * 1 + 0.5}
-            flipDealerCard={dealerTurn}
+            onAnimationComplete={handleInitialCardAnimationComplete}
           />
         );
       }
     }
+
+    // Dealer's first card (face-up on initial deal)
+    if (dealerHand[0]) {
+      initialCards.push(
+        <Card
+          key={`dealer-${dealerHand[0].id}`}
+          card={dealerHand[0]}
+          person="dealer"
+          index={0}
+          boardSize={boardSize}
+          delay={0.5}
+          onAnimationComplete={handleInitialCardAnimationComplete}
+        />
+      );
+    }
+
+    // Dealer's second card (face-down on initial deal)
+    if (dealerHand[1]) {
+      initialCards.push(
+        <Card
+          key={`dealer-${dealerHand[1].id}`}
+          card={dealerHand[1]}
+          person="dealer"
+          index={1}
+          boardSize={boardSize}
+          delay={1.5}
+          flipDealerCard={dealerTurn}
+          onAnimationComplete={handleInitialCardAnimationComplete}
+          updateScoreDealerSecondCard={updateScoreDealerSecondCard}
+        />
+      );
+    }
+
     return initialCards;
   }
 
   function renderHitCards() {
-    console.log(playerHand);
     return playerHand
       .slice(2)
       .map((card, index) => (
@@ -124,6 +250,7 @@ const Test = () => {
           index={index + 2}
           boardSize={boardSize}
           delay={0.3}
+          onAnimationComplete={handleHitCardAnimationComplete}
         />
       ));
   }
@@ -138,13 +265,14 @@ const Test = () => {
           person="dealer"
           index={index + 2}
           boardSize={boardSize}
-          delay={0.3}
+          delay={0.3 + index * 0.5}
+          onAnimationComplete={handleStandCardAnimationComplete}
         />
       ));
   }
 
   function getGameOutcomeMessage() {
-    if (!gameOver) return null;
+    if (!localGameOver) return null;
     return winnerMessage;
   }
 
@@ -170,9 +298,11 @@ const Test = () => {
         <section id="blackjack-actions" className="grid grid-cols-2 gap-2 mb-3">
           <button
             onClick={handleHitButtonClick}
-            disabled={!gameStarted}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              gameStarted
+            disabled={
+              !initialAnimationComplete || !canPlayerAct || localGameOver
+            }
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 ${
+              initialAnimationComplete && canPlayerAct && !localGameOver
                 ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
                 : "opacity-50 cursor-not-allowed"
             }`}
@@ -181,9 +311,11 @@ const Test = () => {
           </button>
           <button
             onClick={handleStandButtonClick}
-            disabled={!gameStarted}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              gameStarted
+            disabled={
+              !initialAnimationComplete || !canPlayerAct || localGameOver
+            }
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 ${
+              initialAnimationComplete && canPlayerAct && !localGameOver
                 ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
                 : "opacity-50 cursor-not-allowed"
             }`}
@@ -191,9 +323,9 @@ const Test = () => {
             Stand
           </button>
           <button
-            disabled={!gameStarted}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              gameStarted
+            disabled={!initialAnimationComplete}
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 ${
+              initialAnimationComplete && !localGameOver
                 ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
                 : "opacity-50 cursor-not-allowed"
             }`}
@@ -201,9 +333,9 @@ const Test = () => {
             Split
           </button>
           <button
-            disabled={!gameStarted}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              gameStarted
+            disabled={!initialAnimationComplete}
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 ${
+              initialAnimationComplete && !localGameOver
                 ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
                 : "opacity-50 cursor-not-allowed"
             }`}
@@ -214,10 +346,10 @@ const Test = () => {
         <button
           onClick={handleBetButtonClick}
           disabled={gameStarted}
-          className={`w-full bg-purple-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg ${
-            gameStarted
-              ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-purple-600 hover:text-gray-300 cursor-pointer"
+          className={`w-full bg-purple-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 ${
+            !gameStarted
+              ? "hover:-translate-y-0.5 hover:shadow-lg hover:bg-purple-600 hover:text-gray-300 cursor-pointer"
+              : "opacity-50 cursor-not-allowed"
           }`}
         >
           Bet
@@ -234,8 +366,38 @@ const Test = () => {
         {renderHitCards()}
         {renderStandCards()}
 
+        {initialAnimationComplete && (
+          <>
+            {/* Dealer Score Display */}
+            {!shouldShowFullDealerScore && (
+              <div
+                className="absolute top-[35%] left-[35%] transform -translate-x-1/2 bg-gray-700 bg-opacity-75 text-white px-2 py-1 rounded text-sm"
+                style={{ zIndex: 10 }}
+              >
+                {displayedDealerScore}
+              </div>
+            )}
+            {shouldShowFullDealerScore && (
+              <div
+                className="absolute top-[35%] left-[35%] transform -translate-x-1/2 bg-gray-700 bg-opacity-75 text-white px-2 py-1 rounded text-sm"
+                style={{ zIndex: 10 }}
+              >
+                {displayedDealerScore}
+              </div>
+            )}
+
+            {/* Player Score Display */}
+            <div
+              className="absolute bottom-[40%] left-[35%] transform -translate-x-1/2 bg-gray-700 bg-opacity-75 text-white px-2 py-1 rounded text-sm"
+              style={{ zIndex: 10 }}
+            >
+              {displayedPlayerScore}
+            </div>
+          </>
+        )}
+
         {showGameMessage && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-75 text-white p-4 rounded">
+          <div className="absolute top-64 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-75 text-white p-4 rounded">
             {getGameOutcomeMessage()}
           </div>
         )}

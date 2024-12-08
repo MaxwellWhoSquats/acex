@@ -1,4 +1,3 @@
-// Card.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { gsap } from "gsap";
 
@@ -15,6 +14,8 @@ interface CardProps {
   };
   delay?: number;
   flipDealerCard?: boolean;
+  onAnimationComplete?: () => void;
+  updateScoreDealerSecondCard?: () => void;
 }
 
 const Card = React.memo(
@@ -25,10 +26,14 @@ const Card = React.memo(
     boardSize,
     delay = 0,
     flipDealerCard,
+    onAnimationComplete,
+    updateScoreDealerSecondCard,
   }: CardProps) => {
     const [face, setFace] = useState("/textures/faces/cardback.png");
     const cardRef = useRef<HTMLDivElement>(null);
     const hasAnimated = useRef(false);
+    const [isFlipped, setIsFlipped] = useState(false);
+    const isDealerFaceDownCard = person === "dealer" && index === 1;
 
     useEffect(() => {
       if (
@@ -41,18 +46,15 @@ const Card = React.memo(
 
         setFace("/textures/faces/cardback.png");
 
-        // Percentage offsets depending on person type
         const percentageOffsets: { [key: string]: number } = {
           player: 0.1,
           dealer: -0.4,
         };
 
         const VERTICAL_OFFSET_PERCENTAGE = percentageOffsets[person] || 0;
-
         const INDEX_OFFSET_X = 0.03;
         const INDEX_OFFSET_Y = 0.03;
 
-        // Calculate target positions based on board size and index
         const targetY =
           boardSize.height / 2 +
           boardSize.height * VERTICAL_OFFSET_PERCENTAGE +
@@ -62,9 +64,7 @@ const Card = React.memo(
           -(boardSize.width / 2 - 24) +
           index * boardSize.width * INDEX_OFFSET_X;
 
-        const isDealerFaceDownCard = person === "dealer" && index === 1;
-
-        // ANIMATION -----------------------------------------------------------
+        // Initial deal animation
         const timeline = gsap.timeline({
           delay,
           onStart: () => {
@@ -74,7 +74,9 @@ const Card = React.memo(
               console.error("Error playing deal sound", error);
             });
           },
-          onComplete: () => {},
+          onComplete: () => {
+            if (onAnimationComplete) onAnimationComplete();
+          },
         });
 
         timeline.fromTo(
@@ -83,8 +85,8 @@ const Card = React.memo(
           { x: targetX, y: targetY, opacity: 1, duration: 0.5 }
         );
 
+        // If not the dealer's face-down card, flip immediately
         if (!isDealerFaceDownCard) {
-          // If not the dealer's second card, perform the flip animation
           timeline
             .to(cardRef.current, {
               rotateY: 90,
@@ -101,10 +103,26 @@ const Card = React.memo(
             });
         }
       }
-    }, [boardSize, card.name, person, index, delay]);
+    }, [
+      boardSize,
+      card.name,
+      person,
+      index,
+      delay,
+      onAnimationComplete,
+      isDealerFaceDownCard,
+    ]);
 
     useEffect(() => {
-      if (flipDealerCard) {
+      // Flip the dealer's face-down card if required
+      if (
+        flipDealerCard &&
+        !isFlipped &&
+        isDealerFaceDownCard &&
+        cardRef.current
+      ) {
+        setIsFlipped(true);
+
         const flipSound = new Audio("/sounds/dealSound.ogg");
         flipSound.volume = 0.2;
         const timeline = gsap.timeline({
@@ -112,6 +130,9 @@ const Card = React.memo(
             flipSound.play().catch((error: any) => {
               console.error("Error playing flip sound", error);
             });
+          },
+          onComplete: () => {
+            if (updateScoreDealerSecondCard) updateScoreDealerSecondCard();
           },
         });
 
@@ -130,7 +151,13 @@ const Card = React.memo(
             ease: "power3.out",
           });
       }
-    }, [flipDealerCard, card.name]);
+    }, [
+      flipDealerCard,
+      card.name,
+      isDealerFaceDownCard,
+      isFlipped,
+      updateScoreDealerSecondCard,
+    ]);
 
     return (
       <div ref={cardRef} className="absolute top-0 right-0">

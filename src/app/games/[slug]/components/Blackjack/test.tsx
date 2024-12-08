@@ -15,6 +15,7 @@ const Test = () => {
     height: 0,
   });
   const [showGameMessage, setShowGameMessage] = useState(false);
+  const [bet, setBet] = useState(0);
 
   // Animation tracking
   const [initialAnimationComplete, setInitialAnimationComplete] =
@@ -36,7 +37,8 @@ const Test = () => {
     dealerTurn,
     winnerMessage,
     dealerDoneDrawing,
-  } = useBlackjack();
+    dealerHasBlackjack,
+  } = useBlackjack(bet);
 
   const [displayedPlayerScore, setDisplayedPlayerScore] = useState<number>(0);
   const [displayedDealerScore, setDisplayedDealerScore] = useState<number>(0);
@@ -229,7 +231,7 @@ const Test = () => {
           index={1}
           boardSize={boardSize}
           delay={1.5}
-          flipDealerCard={dealerTurn}
+          flipDealerCard={dealerTurn || dealerHasBlackjack}
           onAnimationComplete={handleInitialCardAnimationComplete}
           updateScoreDealerSecondCard={updateScoreDealerSecondCard}
         />
@@ -285,6 +287,14 @@ const Test = () => {
             <input
               className="w-full bg-transparent outline-none text-white"
               placeholder="0.00"
+              type="number"
+              value={bet === 0 ? "" : bet}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                // Parse the input value to a number if it's valid; otherwise, keep it empty
+                const parsedValue = inputValue === "" ? 0 : Number(inputValue);
+                setBet(parsedValue);
+              }}
             />
             <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
           </div>

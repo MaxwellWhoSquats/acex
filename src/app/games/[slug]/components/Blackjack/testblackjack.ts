@@ -20,6 +20,7 @@ interface UseBlackjackReturn {
   dealerTurn: boolean;
   winnerMessage: string;
   dealerDoneDrawing: boolean; // Indicates dealer finished drawing
+  dealerHasBlackjack: boolean;
 }
 
 const SUITS = ["hearts", "diamonds", "clubs", "spades"] as const;
@@ -75,7 +76,7 @@ const generateUniqueID = (): string => {
   return "c_" + Math.random().toString(36).substr(2, 9);
 };
 
-export const useBlackjack = (): UseBlackjackReturn => {
+export const useBlackjack = (bet: number): UseBlackjackReturn => {
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [dealerHand, setDealerHand] = useState<Card[]>([]);
   const [playerHas21, setPlayerHas21] = useState<boolean>(false);
@@ -83,7 +84,8 @@ export const useBlackjack = (): UseBlackjackReturn => {
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [dealerTurn, setDealerTurn] = useState<boolean>(false);
   const [winnerMessage, setWinnerMessage] = useState<string>("");
-  const [dealerDoneDrawing, setDealerDoneDrawing] = useState<boolean>(false); // NEW
+  const [dealerDoneDrawing, setDealerDoneDrawing] = useState<boolean>(false);
+  const [dealerHasBlackjack, setDealerHasBlackjack] = useState<boolean>(false);
 
   // Initialize a fresh deck for each game
   const [deck, setDeck] = useState<string[]>(createDeck());
@@ -150,9 +152,12 @@ export const useBlackjack = (): UseBlackjackReturn => {
 
     if (initialDealerScore === 21) {
       setWinnerMessage("Dealer has Blackjack!");
+      setDealerHasBlackjack(true);
       setGameStarted(false);
       return;
     }
+
+    console.log(bet);
   };
 
   const hit = (): void => {
@@ -235,5 +240,6 @@ export const useBlackjack = (): UseBlackjackReturn => {
     dealerTurn,
     winnerMessage,
     dealerDoneDrawing,
+    dealerHasBlackjack,
   };
 };

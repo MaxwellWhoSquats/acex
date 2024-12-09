@@ -5,6 +5,7 @@ import React, {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from "react";
 import { useSession } from "next-auth/react";
 import axios from "axios";
@@ -30,6 +31,7 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
         .get("/api/balance")
         .then((response: { data: { balance: number } }) => {
           setBalance(response.data.balance);
+          console.log(`Fetched Balance: ${response.data.balance}`);
         })
         .catch((error: any) => {
           console.error("Failed to fetch balance:", error);
@@ -37,20 +39,31 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [session]);
 
-  const updateBalance = async (amount: number) => {
-    if (!session?.user?.email || typeof balance !== "number") return;
+  const updateBalance = useCallback(
+    async (amount: number) => {
+      if (!session?.user?.email || typeof balance !== "number") {
+        console.error(
+          "Cannot update balance: User not authenticated or balance invalid."
+        );
+        return;
+      }
 
-    const newBalance = balance + amount;
-    setBalance(newBalance);
+      const newBalance = balance + amount;
+      console.log(`Updating Balance: ${balance} + ${amount} = ${newBalance}`);
+      setBalance(newBalance);
 
-    try {
-      await axios.post("/api/balance", { balance: newBalance });
-    } catch (error) {
-      console.error("Failed to update balance:", error);
-      // Optionally revert the balance if the update fails
-      setBalance(balance);
-    }
-  };
+      try {
+        const response = await axios.patch("/api/balance", { amount });
+        setBalance(response.data.balance);
+        console.log(`Balance updated on server: ${response.data.balance}`);
+      } catch (error: any) {
+        console.error("Failed to update balance:", error);
+        setBalance(balance); // Revert to previous balance
+        alert("Failed to update balance. Please try again.");
+      }
+    },
+    [session, balance]
+  );
 
   return (
     <BalanceContext.Provider value={{ balance, setBalance, updateBalance }}>

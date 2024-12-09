@@ -1,7 +1,10 @@
+// Test.tsx
+
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import Card from "./Card";
 import { useBlackjack } from "./testblackjack";
+import { useBalance } from "@/app/contexts/BalanceContext";
 
 interface BoardSize {
   width: number;
@@ -14,8 +17,9 @@ const Test = () => {
     width: 0,
     height: 0,
   });
-  const [showGameMessage, setShowGameMessage] = useState(false);
   const [bet, setBet] = useState(0);
+
+  const { balance, updateBalance } = useBalance();
 
   // Animation tracking
   const [initialAnimationComplete, setInitialAnimationComplete] =
@@ -35,15 +39,20 @@ const Test = () => {
     dealerScore,
     gameStarted,
     dealerTurn,
-    winnerMessage,
     dealerDoneDrawing,
     dealerHasBlackjack,
+    gameResult,
+    resetGame,
+    gameOver,
   } = useBlackjack(bet);
 
   const [displayedPlayerScore, setDisplayedPlayerScore] = useState<number>(0);
   const [displayedDealerScore, setDisplayedDealerScore] = useState<number>(0);
   const [localGameOver, setLocalGameOver] = useState(false);
   const [canPlayerAct, setCanPlayerAct] = useState(false);
+
+  // Ref to track if balance has been updated for the current game
+  const balanceUpdatedRef = useRef(false);
 
   useEffect(() => {
     const updateSize = () => {
@@ -58,17 +67,66 @@ const Test = () => {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // Show game message after localGameOver
+  // Synchronize localGameOver with gameOver from useBlackjack
   useEffect(() => {
-    if (localGameOver) {
-      const delay = setTimeout(() => setShowGameMessage(true), 1500);
-      return () => clearTimeout(delay);
-    } else {
-      setShowGameMessage(false);
+    if (gameOver && !localGameOver) {
+      setLocalGameOver(true);
     }
-  }, [localGameOver]);
+  }, [gameOver, localGameOver]);
+
+  useEffect(() => {
+    if (gameResult && !balanceUpdatedRef.current) {
+      console.log(
+        "Updating balance for gameResult:",
+        gameResult,
+        "with bet:",
+        bet
+      );
+      // Set the flag immediately to prevent multiple updates
+      balanceUpdatedRef.current = true;
+
+      let amountChange = 0;
+
+      if (gameResult === "WIN") {
+        amountChange = bet * 2; // Return bet + winnings
+      } else if (gameResult === "PUSH") {
+        amountChange = bet; // Return bet
+      } else if (gameResult === "LOSE") {
+        amountChange = 0; // Bet already subtracted
+      }
+
+      if (amountChange !== 0) {
+        updateBalance(amountChange)
+          .then(() => {
+            console.log("Balance updated successfully.");
+            setLocalGameOver(true); // Ensure localGameOver is set
+            // No need to resetGame here
+          })
+          .catch((error) => {
+            console.error("Failed to update balance:", error);
+            alert("Failed to update balance. Please contact support.");
+            // Optionally, you might want to revert the initial bet if updating balance fails
+          });
+      } else {
+        setLocalGameOver(true); // Ensure localGameOver is set
+      }
+    }
+  }, [gameResult, bet, updateBalance]);
 
   function handleBetButtonClick() {
+    if (bet <= 0) {
+      alert("Please enter a valid bet amount.");
+      return;
+    }
+
+    if (typeof balance !== "number" || balance < bet) {
+      alert("Insufficient balance to place this bet.");
+      return;
+    }
+
+    // Reset the game state before starting a new game
+    resetGame();
+
     setInitialAnimationComplete(false);
     setInitialDealCardsCount(0);
     setHitCardsCount(0);
@@ -76,19 +134,62 @@ const Test = () => {
     setLocalGameOver(false);
     setCanPlayerAct(false);
 
-    dealCards();
+    // Reset the balance updated flag for the new game
+    balanceUpdatedRef.current = false;
+
+    // Subtract the bet when placing the bet
+    updateBalance(-bet)
+      .then(() => {
+        dealCards();
+      })
+      .catch((error) => {
+        console.error("Failed to place bet:", error);
+        alert("Failed to place bet. Please try again.");
+      });
   }
 
-  function handleHitButtonClick() {
+  async function handleHitButtonClick() {
     if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
     setCanPlayerAct(false);
-    hit();
+    await hit();
   }
 
-  function handleStandButtonClick() {
+  async function handleStandButtonClick() {
     if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
     setCanPlayerAct(false);
-    stand();
+    await stand();
+  }
+
+  async function handleDoubleButtonClick() {
+    if (
+      !initialAnimationComplete ||
+      !canPlayerAct ||
+      localGameOver ||
+      playerHand.length !== 2
+    )
+      return;
+
+    if (typeof balance !== "number" || balance < bet) {
+      alert("Insufficient balance to double down.");
+      return;
+    }
+
+    try {
+      // Subtract the additional bet
+      await updateBalance(-bet);
+      setBet((prev) => prev * 2);
+
+      // Perform hit and await its completion
+      const canContinue = await hit();
+
+      // If the player hasn't busted, proceed to stand
+      if (canContinue) {
+        await stand();
+      }
+    } catch (error) {
+      console.error("Failed to double down:", error);
+      alert("Failed to double down. Please try again.");
+    }
   }
 
   function handleInitialCardAnimationComplete() {
@@ -100,7 +201,7 @@ const Test = () => {
         setInitialAnimationComplete(true);
         setDisplayedPlayerScore(playerScore);
 
-        if (winnerMessage && winnerMessage.length > 0) {
+        if (playerScore === 21 || dealerScore === 21) {
           // Immediate outcome (like initial blackjack)
           setDisplayedDealerScore(dealerScore);
           setLocalGameOver(true);
@@ -113,7 +214,7 @@ const Test = () => {
         } else {
           // dealerTurn is true after initial deal
           setDisplayedDealerScore(dealerScore);
-          if (!winnerMessage) {
+          if (dealerScore < 17) {
             setCanPlayerAct(true);
           }
         }
@@ -129,15 +230,13 @@ const Test = () => {
       setDisplayedPlayerScore(playerScore);
 
       // If player hits 21
-      if (playerScore === 21 && !winnerMessage && !localGameOver) {
+      if (playerScore === 21 && !localGameOver) {
         setTimeout(() => {
-          if (!winnerMessage && !localGameOver) {
-            setCanPlayerAct(false);
-            stand();
-          }
+          setCanPlayerAct(false);
+          stand();
         }, 1000);
       } else {
-        if (playerScore < 21 && !winnerMessage && !localGameOver) {
+        if (playerScore < 21 && !localGameOver) {
           setCanPlayerAct(true);
         }
       }
@@ -156,35 +255,34 @@ const Test = () => {
     });
   }
 
-  // New callback specifically for updating score after the dealer's second card is flipped
+  // Callback for updating score after the dealer's second card is flipped
   function updateScoreDealerSecondCard() {
-    // Called once the dealer's face-down card has finished flipping
     setDisplayedDealerScore(dealerScore);
   }
 
-  // Finalize the game once all dealer cards are done and we have a winnerMessage
+  // Finalize the game once all dealer cards are done
   useEffect(() => {
     const dealerDrawnCards = dealerHand.length - 2;
     if (
       initialAnimationComplete &&
-      winnerMessage &&
       !localGameOver &&
       standCardsCount === dealerDrawnCards &&
       dealerDoneDrawing
     ) {
       setLocalGameOver(true);
+      // No "Play Again" button, so no need to set any state here
     }
   }, [
     initialAnimationComplete,
-    winnerMessage,
     localGameOver,
     standCardsCount,
     dealerHand.length,
     dealerDoneDrawing,
+    dealerScore,
   ]);
 
   const shouldShowFullDealerScore =
-    dealerTurn || (winnerMessage && winnerMessage.length > 0);
+    dealerTurn || (localGameOver && !dealerDoneDrawing);
 
   function renderInitialCards() {
     const initialCards = [];
@@ -273,11 +371,6 @@ const Test = () => {
       ));
   }
 
-  function getGameOutcomeMessage() {
-    if (!localGameOver) return null;
-    return winnerMessage;
-  }
-
   return (
     <div className="flex flex-1">
       <aside className="w-1/5 bg-slate-600 p-2">
@@ -287,31 +380,39 @@ const Test = () => {
             <input
               className="w-full bg-transparent outline-none text-white"
               placeholder="0.00"
+              disabled={gameStarted}
               type="number"
               value={bet === 0 ? "" : bet}
               onChange={(e) => {
                 const inputValue = e.target.value;
-                // Parse the input value to a number if it's valid; otherwise, keep it empty
                 const parsedValue = inputValue === "" ? 0 : Number(inputValue);
                 setBet(parsedValue);
               }}
             />
             <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
           </div>
-          <button className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg">
+          <button
+            onClick={() => setBet((prev) => Math.floor(prev / 2))}
+            disabled={gameStarted || bet < 2}
+            className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             1/2
           </button>
-          <button className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg">
+          <button
+            onClick={() => setBet((prev) => prev * 2)}
+            disabled={gameStarted || bet === 0}
+            className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             2x
           </button>
         </section>
-        <section id="blackjack-actions" className="grid grid-cols-2 gap-2 mb-3">
+        <section id="blackjack-actions" className="grid grid-cols-3 gap-2 mb-3">
           <button
             onClick={handleHitButtonClick}
             disabled={
               !initialAnimationComplete || !canPlayerAct || localGameOver
             }
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 ${
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 overflow-hidden ${
               initialAnimationComplete && canPlayerAct && !localGameOver
                 ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
                 : "opacity-50 cursor-not-allowed"
@@ -324,7 +425,7 @@ const Test = () => {
             disabled={
               !initialAnimationComplete || !canPlayerAct || localGameOver
             }
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 ${
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 overflow-hidden ${
               initialAnimationComplete && canPlayerAct && !localGameOver
                 ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
                 : "opacity-50 cursor-not-allowed"
@@ -333,19 +434,18 @@ const Test = () => {
             Stand
           </button>
           <button
-            disabled={!initialAnimationComplete}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 ${
-              initialAnimationComplete && !localGameOver
-                ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
-                : "opacity-50 cursor-not-allowed"
-            }`}
-          >
-            Split
-          </button>
-          <button
-            disabled={!initialAnimationComplete}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 ${
-              initialAnimationComplete && !localGameOver
+            onClick={handleDoubleButtonClick}
+            disabled={
+              !initialAnimationComplete ||
+              !canPlayerAct ||
+              localGameOver ||
+              playerHand.length !== 2
+            }
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 overflow-hidden ${
+              initialAnimationComplete &&
+              !localGameOver &&
+              canPlayerAct &&
+              playerHand.length === 2
                 ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
                 : "opacity-50 cursor-not-allowed"
             }`}
@@ -355,15 +455,27 @@ const Test = () => {
         </section>
         <button
           onClick={handleBetButtonClick}
-          disabled={gameStarted}
+          disabled={
+            gameStarted ||
+            typeof balance !== "number" ||
+            balance < bet ||
+            bet <= 0
+          }
           className={`w-full bg-purple-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 ${
-            !gameStarted
+            !gameStarted &&
+            typeof balance === "number" &&
+            balance >= bet &&
+            bet > 0
               ? "hover:-translate-y-0.5 hover:shadow-lg hover:bg-purple-600 hover:text-gray-300 cursor-pointer"
               : "opacity-50 cursor-not-allowed"
           }`}
         >
           Bet
         </button>
+        <div className="mt-4 text-center text-sm text-white">
+          Current Balance:{" "}
+          {typeof balance === "number" ? `$${balance.toFixed(2)}` : balance}
+        </div>
       </aside>
       <main ref={boardRef} className="flex-1 bg-slate-800 relative">
         <img
@@ -404,12 +516,6 @@ const Test = () => {
               {displayedPlayerScore}
             </div>
           </>
-        )}
-
-        {showGameMessage && (
-          <div className="absolute top-64 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-75 text-white p-4 rounded">
-            {getGameOutcomeMessage()}
-          </div>
         )}
       </main>
     </div>

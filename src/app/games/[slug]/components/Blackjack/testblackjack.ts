@@ -1,4 +1,6 @@
-import { useState } from "react";
+// testblackjack.ts
+
+import { useState, useCallback } from "react";
 
 interface Card {
   id: string;
@@ -11,16 +13,17 @@ interface UseBlackjackReturn {
   playerScore: number;
   dealerScore: number;
   dealCards: () => void;
-  hit: () => void;
-  stand: () => void;
+  hit: () => Promise<boolean>; // Returns true if player can continue
+  stand: () => Promise<void>;
   handValue: (hand: string[]) => number;
   playerHas21: boolean;
   gameOver: boolean;
   gameStarted: boolean;
   dealerTurn: boolean;
-  winnerMessage: string;
-  dealerDoneDrawing: boolean; // Indicates dealer finished drawing
+  dealerDoneDrawing: boolean;
   dealerHasBlackjack: boolean;
+  gameResult: "WIN" | "LOSE" | "PUSH" | "";
+  resetGame: () => void;
 }
 
 const SUITS = ["hearts", "diamonds", "clubs", "spades"] as const;
@@ -76,6 +79,16 @@ const generateUniqueID = (): string => {
   return "c_" + Math.random().toString(36).substr(2, 9);
 };
 
+// Shuffle function
+const shuffleDeck = (deck: string[]): string[] => {
+  const shuffled = [...deck];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export const useBlackjack = (bet: number): UseBlackjackReturn => {
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [dealerHand, setDealerHand] = useState<Card[]>([]);
@@ -83,44 +96,37 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [dealerTurn, setDealerTurn] = useState<boolean>(false);
-  const [winnerMessage, setWinnerMessage] = useState<string>("");
   const [dealerDoneDrawing, setDealerDoneDrawing] = useState<boolean>(false);
   const [dealerHasBlackjack, setDealerHasBlackjack] = useState<boolean>(false);
+  const [gameResult, setGameResult] = useState<"WIN" | "LOSE" | "PUSH" | "">("");
 
   // Initialize a fresh deck for each game
-  const [deck, setDeck] = useState<string[]>(createDeck());
+  const [deck, setDeck] = useState<string[]>(shuffleDeck(createDeck()));
 
   const playerScore = handValue(playerHand.map((card) => card.name));
   const dealerScore = handValue(dealerHand.map((card) => card.name));
 
-  const shuffleDeck = (deck: string[]): string[] => {
-    const shuffled = [...deck];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  const dealCards = (): void => {
+  const dealCards = useCallback((): void => {
     setPlayerHas21(false);
     setGameOver(false);
     setGameStarted(true);
     setDealerTurn(false);
-    setWinnerMessage("");
     setDealerDoneDrawing(false);
+    setGameResult(""); // Reset gameResult when dealing new cards
+    setDealerHasBlackjack(false);
 
     // Shuffle and reset deck
     const shuffledDeck = shuffleDeck(createDeck());
-    setDeck(shuffledDeck);
 
+    // Draw cards from shuffledDeck
+    const newDeck = [...shuffledDeck];
     const drawCard = (): Card => {
-      if (deck.length === 0) {
+      if (newDeck.length === 0) {
         // Reset deck if out of cards
-        setDeck(shuffleDeck(createDeck()));
-        return drawCard();
+        const newShuffledDeck = shuffleDeck(createDeck());
+        newDeck.push(...newShuffledDeck);
       }
-      const cardName = deck[Math.floor(Math.random() * deck.length)];
+      const cardName = newDeck.shift()!;
       return {
         id: generateUniqueID(),
         name: cardName,
@@ -132,40 +138,52 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
 
     setPlayerHand(newPlayerHand);
     setDealerHand(newDealerHand);
+    setDeck(newDeck);
 
     const initialPlayerScore = handValue(newPlayerHand.map((card) => card.name));
     const initialDealerScore = handValue(newDealerHand.map((card) => card.name));
 
     // Check for immediate blackjack
     if (initialPlayerScore === 21 && initialDealerScore === 21) {
-      setWinnerMessage("It's a push.");
       setGameStarted(false);
+      setGameResult("PUSH");
       return;
     }
 
     if (initialPlayerScore === 21) {
-      setWinnerMessage("Player has Blackjack!");
       setPlayerHas21(true);
       setGameStarted(false);
+      setGameResult("WIN");
       return;
     }
 
     if (initialDealerScore === 21) {
-      setWinnerMessage("Dealer has Blackjack!");
       setDealerHasBlackjack(true);
       setGameStarted(false);
+      setGameResult("LOSE");
       return;
     }
 
-    console.log(bet);
-  };
+    console.log("Initial bet:", bet);
+  }, [bet]);
 
-  const hit = (): void => {
-    if (!gameStarted) return;
+  const hit = useCallback(async (): Promise<boolean> => {
+    if (!gameStarted) return false;
+
+    if (deck.length === 0) {
+      alert("No more cards in the deck!");
+      return false;
+    }
+
+    const cardIndex = Math.floor(Math.random() * deck.length);
+    const cardName = deck[cardIndex];
+    const updatedDeck = [...deck];
+    updatedDeck.splice(cardIndex, 1); // Remove the drawn card from the deck
+    setDeck(updatedDeck);
 
     const newCard: Card = {
       id: generateUniqueID(),
-      name: deck[Math.floor(Math.random() * deck.length)],
+      name: cardName,
     };
 
     setPlayerHand((prevHand) => {
@@ -173,16 +191,27 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
       const playerValue = handValue(updatedHand.map((card) => card.name));
 
       if (playerValue > 21) {
-        setWinnerMessage("You busted! Dealer wins.");
         setGameStarted(false);
+        setGameResult("LOSE");
+        setGameOver(true);
+      } else if (playerValue === 21) {
+        setGameResult("WIN");
+        setGameOver(true);
       }
       return updatedHand;
     });
-  };
+
+    // Simulate async operation (e.g., animation delay)
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Determine if the player can continue
+    const currentPlayerScore = handValue(playerHand.map((card) => card.name)) + handValue([cardName]);
+    return currentPlayerScore <= 21;
+  }, [gameStarted, deck, playerHand]);
 
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const stand = async (): Promise<void> => {
+  const stand = useCallback(async (): Promise<void> => {
     if (!gameStarted) return;
 
     setDealerTurn(true);
@@ -193,9 +222,20 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     while (dealerValue < 17) {
       await delay(1000); // Wait for animation
 
+      if (deck.length === 0) {
+        alert("No more cards in the deck!");
+        break;
+      }
+
+      const cardIndex = Math.floor(Math.random() * deck.length);
+      const cardName = deck[cardIndex];
+      const updatedDeck = [...deck];
+      updatedDeck.splice(cardIndex, 1); // Remove the drawn card from the deck
+      setDeck(updatedDeck);
+
       const newCard: Card = {
         id: generateUniqueID(),
-        name: deck[Math.floor(Math.random() * deck.length)],
+        name: cardName,
       };
 
       currentDealerHand = [...currentDealerHand, newCard];
@@ -209,21 +249,33 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     const playerValue = handValue(playerHand.map((card) => card.name));
 
     if (dealerValue > 21) {
-      setWinnerMessage("Dealer busted! You win!");
+      setGameResult("WIN");
     } else if (playerValue > 21) {
-      setWinnerMessage("You busted! Dealer wins.");
+      setGameResult("LOSE");
     } else if (playerValue === dealerValue) {
-      setWinnerMessage("It's a push.");
+      setGameResult("PUSH");
     } else if (playerValue > dealerValue) {
-      setWinnerMessage("You win!");
+      setGameResult("WIN");
     } else {
-      setWinnerMessage("You lose!");
+      setGameResult("LOSE");
     }
 
-    setTimeout(() => {
-      setGameStarted(false);
-    }, 2000);
-  };
+    await delay(2000); // Wait before ending the game
+    setGameStarted(false);
+  }, [gameStarted, dealerHand, deck, playerHand]);
+
+  const resetGame = useCallback(() => {
+    setGameResult("");
+    setDealerTurn(false);
+    setDealerDoneDrawing(false);
+    setDealerHasBlackjack(false);
+    setPlayerHas21(false);
+    setPlayerHand([]);
+    setDealerHand([]);
+    setDeck(shuffleDeck(createDeck()));
+    setGameOver(false);
+    setGameStarted(false);
+  }, []);
 
   return {
     playerHand,
@@ -238,8 +290,9 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     gameOver,
     gameStarted,
     dealerTurn,
-    winnerMessage,
     dealerDoneDrawing,
     dealerHasBlackjack,
+    gameResult,
+    resetGame,
   };
 };

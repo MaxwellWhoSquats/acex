@@ -3,7 +3,6 @@ import { useParams } from "next/navigation";
 import games from "@/data/games.json";
 import dynamic from "next/dynamic";
 import Navbar from "@/app/components/Navbar";
-import Test from "./components/Blackjack/test";
 
 const BlackjackGame = dynamic(() => import("./components/BlackjackGame"));
 
@@ -20,8 +19,7 @@ const GamePage = () => {
     <>
       <Navbar />
       <div className="mt-6 mx-auto w-3/4 h-[80vh] flex justify-center border border-slate-600 rounded">
-        <Test />
-        {/* {slug === "blackjack" && <BlackjackGame />} */}
+        {slug === "blackjack" && <BlackjackGame />}
         {/* {slug === "dragon-tower" && <DragonTowerGame />} */}
       </div>
     </>

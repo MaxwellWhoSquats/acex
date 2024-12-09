@@ -1,303 +1,416 @@
-// BlackjackGame.tsx
 "use client";
-import React, { useLayoutEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
+
+import React, { useState, useRef, useEffect } from "react";
+import Card from "./Blackjack/Card";
 import { useBlackjack } from "./Blackjack/blackjack";
+import { useBalance } from "@/app/contexts/BalanceContext";
 
-const BlackjackGame = () => {
-  // Refs for each card
-  const playerCard1Ref = useRef<HTMLDivElement>(null);
-  const dealerCard1Ref = useRef<HTMLDivElement>(null);
-  const playerCard2Ref = useRef<HTMLDivElement>(null);
-  const dealerCard2Ref = useRef<HTMLDivElement>(null);
-  const playerScoreDisplayRef = useRef<HTMLDivElement>(null);
-  const dealerScoreDisplayRef = useRef<HTMLDivElement>(null);
-  // State variables to manage each card's face
-  const [playerCard1Face, setPlayerCard1Face] = useState("cardback.png");
-  const [dealerCard1Face, setDealerCard1Face] = useState("cardback.png");
-  const [playerCard2Face, setPlayerCard2Face] = useState("cardback.png");
-  const [dealerCard2Face, setDealerCard2Face] = useState("cardback.png");
+interface BoardSize {
+  width: number;
+  height: number;
+}
 
-  // Initialize score variables
-  const [playerScore, setPlayerScore] = useState(0);
-  const [dealerScore, setDealerScore] = useState(0);
-  const [dealerFaceUpValue, setDealerFaceUpValue] = useState(0);
-  const [showDealerScore, setShowDealerScore] = useState(false);
+const Test = () => {
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [boardSize, setBoardSize] = useState<BoardSize>({
+    width: 0,
+    height: 0,
+  });
   const [bet, setBet] = useState(0);
 
-  const mainRef = useRef<HTMLDivElement>(null);
-  const deckRef = useRef<HTMLImageElement>(null);
+  const { balance, updateBalance } = useBalance();
 
-  const { dealCards } = useBlackjack(bet);
-  const [isAnimating, setIsAnimating] = useState(false);
+  // Animation tracking
+  const [initialAnimationComplete, setInitialAnimationComplete] =
+    useState(false);
+  const [initialDealCardsCount, setInitialDealCardsCount] = useState(0);
+  const [hitCardsCount, setHitCardsCount] = useState(0);
+  const [standCardsCount, setStandCardsCount] = useState(0);
+  const [scoreBackground, setScoreBackground] = useState("bg-gray-700");
 
-  // Desired position percentages
-  const DESIRED_LEFT_PERCENT = 0.5;
+  const {
+    dealCards,
+    hit,
+    stand,
+    handValue,
+    playerHand,
+    dealerHand,
+    playerScore,
+    dealerScore,
+    gameStarted,
+    dealerTurn,
+    dealerDoneDrawing,
+    dealerHasBlackjack,
+    gameResult,
+    resetGame,
+    gameOver,
+  } = useBlackjack(bet);
 
-  // Top position percentages for player and dealer
-  const PLAYER_DESIRED_TOP_PERCENT = 0.8;
-  const DEALER_DESIRED_TOP_PERCENT = 0.2;
+  const [displayedPlayerScore, setDisplayedPlayerScore] = useState<number>(0);
+  const [displayedDealerScore, setDisplayedDealerScore] = useState<number>(0);
+  const [localGameOver, setLocalGameOver] = useState(false);
+  const [canPlayerAct, setCanPlayerAct] = useState(false);
 
-  // Offsets for the second cards to prevent full overlap
-  const PLAYER_CARD2_OFFSET_X = 40;
-  const DEALER_CARD2_OFFSET_X = 40;
-  const PLAYER_CARD2_OFFSET_Y = 25;
-  const DEALER_CARD2_OFFSET_Y = 25;
+  // New state to control delayed flipping of dealer's second card when dealerHasBlackjack is true
+  const [flipDealerBlackjackCard, setFlipDealerBlackjackCard] = useState(false);
 
-  // Handle window resize (in progress)
-  useLayoutEffect(() => {
-    const handleResize = () => {
-      // You can implement responsive positioning here if required
+  // Ref to track if balance has been updated for the current game
+  const balanceUpdatedRef = useRef(false);
+
+  // Ref to track if stand has been scheduled to prevent multiple calls
+  const standScheduledRef = useRef(false);
+
+  useEffect(() => {
+    const updateSize = () => {
+      if (boardRef.current) {
+        const { width, height } = boardRef.current.getBoundingClientRect();
+        setBoardSize({ width, height });
+      }
     };
 
-    const debounce = (func: Function, delay: number) => {
-      let timer: NodeJS.Timeout;
-      return (...args: any[]) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => func(...args), delay);
-      };
-    };
-
-    const debouncedHandleResize = debounce(handleResize, 200);
-
-    window.addEventListener("resize", debouncedHandleResize);
-
-    // Cleanup on unmount
-    return () => {
-      window.removeEventListener("resize", debouncedHandleResize);
-    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  const handleBetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const betValue = parseFloat(e.target.value);
-    if (!isNaN(betValue)) {
-      setBet(betValue);
+  // Synchronize localGameOver with gameOver from useBlackjack
+  useEffect(() => {
+    if (gameOver && !localGameOver) {
+      setLocalGameOver(true);
     }
-  };
+  }, [gameOver, localGameOver]);
 
-  const handleBetClick = () => {
-    if (isAnimating) return; // Prevent multiple animations
+  // Modify the balance updating useEffect to wait for localGameOver
+  useEffect(() => {
+    if (gameResult && localGameOver && !balanceUpdatedRef.current) {
+      console.log(
+        "Updating balance for gameResult:",
+        gameResult,
+        "with bet:",
+        bet
+      );
+      balanceUpdatedRef.current = true;
 
-    // Deal new cards and retrieve both hands
-    const {
-      playerHand: newPlayerHand,
-      dealerHand: newDealerHand,
-      playerScore,
-      dealerScore,
-      dealerFaceUpCard,
-    } = dealCards();
+      let amountChange = 0;
 
-    // Ensure that both hands have at least two cards
-    if (newPlayerHand.length < 2 || newDealerHand.length < 2) {
-      console.error("Not enough cards dealt");
-      return;
-    }
-
-    // Update scores
-    setPlayerScore(playerScore);
-    setDealerScore(dealerScore);
-
-    // Extract individual cards
-    const playerCard1 = newPlayerHand[0];
-    const dealerCard1 = newDealerHand[0];
-    const playerCard2 = newPlayerHand[1];
-    const dealerCard2 = newDealerHand[1];
-    setDealerFaceUpValue(dealerFaceUpCard);
-
-    setIsAnimating(true); // Start animation
-
-    // Reset all card faces to "cardback.png" before starting the animation
-    setPlayerCard1Face("cardback.png");
-    setDealerCard1Face("cardback.png");
-    setPlayerCard2Face("cardback.png");
-    setDealerCard2Face("cardback.png");
-
-    // Reset rotations to 0 degrees to ensure consistent flipping
-    if (playerCard1Ref.current)
-      gsap.set(playerCard1Ref.current, { rotateY: 0 });
-    if (dealerCard1Ref.current)
-      gsap.set(dealerCard1Ref.current, { rotateY: 0 });
-    if (playerCard2Ref.current)
-      gsap.set(playerCard2Ref.current, { rotateY: 0 });
-    if (dealerCard2Ref.current)
-      gsap.set(dealerCard2Ref.current, { rotateY: 0 });
-
-    // Calculate positions relative to the main container
-    const main = mainRef.current;
-    const deck = deckRef.current;
-
-    if (!main || !deck) {
-      console.error("Missing refs");
-      return;
-    }
-
-    const mainRect = main.getBoundingClientRect();
-    const deckRect = deck.getBoundingClientRect();
-    const cardWidth = 128; // Assuming w-32 is 128px
-    const cardHeight = 192; // Assuming h-48 is 192px
-
-    // Calculate target positions for player and dealer
-    const playerLeft = mainRect.width * DESIRED_LEFT_PERCENT - cardWidth / 2;
-    const playerTop =
-      mainRect.height * PLAYER_DESIRED_TOP_PERCENT - cardHeight / 2;
-
-    const dealerLeft = mainRect.width * DESIRED_LEFT_PERCENT - cardWidth / 2;
-    const dealerTop =
-      mainRect.height * DEALER_DESIRED_TOP_PERCENT - cardHeight / 2;
-
-    // Calculate relative positions from the deck
-    const targetPositions = {
-      playerCard1: {
-        x: playerLeft - (deckRect.left - mainRect.left),
-        y: playerTop - (deckRect.top - mainRect.top),
-      },
-      dealerCard1: {
-        x: dealerLeft - (deckRect.left - mainRect.left),
-        y: dealerTop - (deckRect.top - mainRect.top),
-      },
-      playerCard2: {
-        x: playerLeft + PLAYER_CARD2_OFFSET_X - (deckRect.left - mainRect.left),
-        y: playerTop + PLAYER_CARD2_OFFSET_Y - (deckRect.top - mainRect.top),
-      },
-      dealerCard2: {
-        x: dealerLeft + DEALER_CARD2_OFFSET_X - (deckRect.left - mainRect.left),
-        y: dealerTop + DEALER_CARD2_OFFSET_Y - (deckRect.top - mainRect.top),
-      },
-    };
-
-    const timeline = gsap.timeline({
-      onComplete: () => setIsAnimating(false),
-    });
-
-    // 1. Animate Player Card 1
-    timeline
-      .fromTo(
-        playerCard1Ref.current,
-        {
-          x: 0,
-          y: 0,
-          opacity: 0,
-        },
-        {
-          x: targetPositions.playerCard1.x,
-          y: targetPositions.playerCard1.y,
-          opacity: 1,
-          duration: 0.6,
-          ease: "power3.out",
-        }
-      )
-      .to(playerCard1Ref.current, {
-        rotateY: 90,
-        duration: 0.2,
-        ease: "power3.out",
-      })
-      .add(() => setPlayerCard1Face(`${playerCard1}.png`))
-      .to(playerCard1Ref.current, {
-        rotateY: 0,
-        duration: 0.2,
-        ease: "power3.in",
-      });
-
-    // 2. Animate Dealer Card 1
-    timeline.fromTo(
-      dealerCard1Ref.current,
-      {
-        x: 0,
-        y: 0,
-        opacity: 0,
-      },
-      {
-        x: targetPositions.dealerCard1.x,
-        y: targetPositions.dealerCard1.y,
-        opacity: 1,
-        duration: 0.6,
-        ease: "power3.out",
-      },
-      "-=0.4" // Overlap with the previous animation by 0.4 seconds
-    );
-
-    // 3. Animate Player Card 2
-    timeline
-      .fromTo(
-        playerCard2Ref.current,
-        {
-          x: 0,
-          y: 0,
-          opacity: 0,
-        },
-        {
-          x: targetPositions.playerCard2.x,
-          y: targetPositions.playerCard2.y,
-          opacity: 1,
-          duration: 0.6,
-          ease: "power3.out",
-        }
-      )
-      .to(playerCard2Ref.current, {
-        rotateY: 90,
-        duration: 0.2,
-        ease: "power3.out",
-      })
-      .add(() => setPlayerCard2Face(`${playerCard2}.png`))
-      .to(playerCard2Ref.current, {
-        rotateY: 0,
-        duration: 0.2,
-        ease: "power3.in",
-      });
-
-    // 4. Animate Dealer Card 2
-    timeline
-      .fromTo(
-        dealerCard2Ref.current,
-        {
-          x: 0,
-          y: 0,
-          opacity: 0,
-        },
-        {
-          x: targetPositions.dealerCard2.x,
-          y: targetPositions.dealerCard2.y,
-          opacity: 1,
-          duration: 0.6,
-          ease: "power3.out",
-        },
-        "-=0.4" // Overlap with the previous animation by 0.6 seconds
-      )
-      .to(dealerCard2Ref.current, {
-        rotateY: 90,
-        duration: 0.2,
-        ease: "power3.out",
-      })
-      .add(() => setDealerCard2Face(`${dealerCard2}.png`))
-      .to(dealerCard2Ref.current, {
-        rotateY: 0,
-        duration: 0.2,
-        ease: "power3.in",
-      });
-
-    // 5. Show scores
-    timeline.fromTo(
-      dealerScoreDisplayRef.current,
-      {
-        opacity: 0,
-      },
-      {
-        opacity: 1,
-        duration: 0.3,
+      if (gameResult === "WIN") {
+        amountChange = bet * 2; // Return bet + winnings
+      } else if (gameResult === "PUSH") {
+        amountChange = bet; // Return bet
+      } else if (gameResult === "LOSE") {
+        amountChange = 0; // Bet already subtracted
       }
-    );
-    timeline.fromTo(
-      playerScoreDisplayRef.current,
-      {
-        opacity: 0,
-      },
-      {
-        opacity: 1,
-        duration: 0.3,
-      },
-      "-=0.3"
-    );
-  };
+
+      if (amountChange !== 0) {
+        updateBalance(amountChange)
+          .then(() => {
+            console.log("Balance updated successfully.");
+          })
+          .catch((error) => {
+            console.error("Failed to update balance:", error);
+            alert("Failed to update balance. Please contact support.");
+          });
+      }
+    }
+  }, [gameResult, localGameOver, bet, updateBalance]);
+
+  // Automatically stand when playerScore reaches 21
+  useEffect(() => {
+    if (
+      playerScore === 21 &&
+      canPlayerAct &&
+      !localGameOver &&
+      !standScheduledRef.current
+    ) {
+      standScheduledRef.current = true;
+      setCanPlayerAct(false);
+      setTimeout(() => {
+        if (!gameOver) {
+          stand();
+          standScheduledRef.current = false;
+        }
+      }, 1000);
+    }
+  }, [playerScore, canPlayerAct, localGameOver, stand, gameOver]);
+
+  // Synchronize displayedPlayerScore with playerScore
+  useEffect(() => {
+    setDisplayedPlayerScore(playerScore);
+
+    if (playerScore > 21 && !localGameOver) {
+      setLocalGameOver(true);
+      setCanPlayerAct(false);
+    }
+  }, [playerScore, localGameOver, canPlayerAct]);
+
+  async function handleBetButtonClick() {
+    if (bet <= 0) {
+      alert("Please enter a valid bet amount.");
+      return;
+    }
+
+    if (typeof balance !== "number" || balance < bet) {
+      alert("Insufficient balance to place this bet.");
+      return;
+    }
+
+    resetGame();
+
+    setInitialAnimationComplete(false);
+    setInitialDealCardsCount(0);
+    setHitCardsCount(0);
+    setStandCardsCount(0);
+    setLocalGameOver(false);
+    setCanPlayerAct(false);
+    setFlipDealerBlackjackCard(false);
+    setScoreBackground("bg-gray-700");
+
+    balanceUpdatedRef.current = false;
+
+    // Subtract the bet when placing the bet
+    updateBalance(-bet)
+      .then(() => {
+        dealCards();
+      })
+      .catch((error) => {
+        console.error("Failed to place bet:", error);
+        alert("Failed to place bet. Please try again.");
+      });
+  }
+
+  async function handleHitButtonClick() {
+    if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
+    setCanPlayerAct(false);
+    const canContinue = await hit();
+    if (canContinue) {
+      setCanPlayerAct(true);
+    } else {
+      setLocalGameOver(true);
+    }
+  }
+
+  async function handleStandButtonClick() {
+    if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
+    setCanPlayerAct(false);
+    await stand();
+  }
+
+  async function handleDoubleButtonClick() {
+    if (
+      !initialAnimationComplete ||
+      !canPlayerAct ||
+      localGameOver ||
+      playerHand.length !== 2
+    )
+      return;
+
+    if (typeof balance !== "number" || balance < bet) {
+      alert("Insufficient balance to double down.");
+      return;
+    }
+
+    try {
+      // Subtract the additional bet
+      await updateBalance(-bet);
+      setBet((prev) => prev * 2);
+
+      const canContinue = await hit();
+      if (canContinue && !standScheduledRef.current) {
+        standScheduledRef.current = true;
+        setCanPlayerAct(false);
+        setTimeout(() => {
+          if (!gameOver) {
+            stand();
+            standScheduledRef.current = false;
+          }
+        }, 1000);
+      } else if (!canContinue) {
+        setLocalGameOver(true);
+      }
+    } catch (error) {
+      console.error("Failed to double down:", error);
+      alert("Failed to double down. Please try again.");
+    }
+  }
+
+  function handleInitialCardAnimationComplete() {
+    setInitialDealCardsCount((prev) => {
+      const newCount = prev + 1;
+      if (newCount === 4) {
+        // All initial cards done
+        setInitialAnimationComplete(true);
+        setDisplayedPlayerScore(playerScore);
+
+        if (playerScore === 21 || dealerScore === 21) {
+          // Immediate outcome (initial blackjack)
+          setDisplayedDealerScore(dealerScore);
+          setLocalGameOver(true);
+
+          // If dealer has blackjack, delay the flip
+          if (dealerHasBlackjack) {
+            setTimeout(() => {
+              setFlipDealerBlackjackCard(true);
+            }, 500);
+          }
+        } else if (!dealerTurn) {
+          // Show partial dealer score (just first card)
+          if (dealerHand[0]) {
+            setDisplayedDealerScore(handValue([dealerHand[0].name]));
+          }
+          setCanPlayerAct(true);
+        } else {
+          // dealerTurn is true after initial deal
+          setDisplayedDealerScore(dealerScore);
+          if (dealerScore < 17) {
+            setCanPlayerAct(true);
+          }
+        }
+      }
+      return newCount;
+    });
+  }
+
+  function handleStandCardAnimationComplete() {
+    setStandCardsCount((prev) => {
+      const newCount = prev + 1;
+      if (!localGameOver) {
+        setDisplayedDealerScore(dealerScore);
+      }
+      return newCount;
+    });
+  }
+
+  // Callback for updating score after the dealer's second card is flipped
+  function updateScoreDealerSecondCard() {
+    setDisplayedDealerScore(dealerScore);
+  }
+
+  // Finalize the game once all dealer cards are done
+  useEffect(() => {
+    const dealerDrawnCards = dealerHand.length - 2;
+    if (
+      initialAnimationComplete &&
+      !localGameOver &&
+      standCardsCount === dealerDrawnCards &&
+      dealerDoneDrawing
+    ) {
+      if (gameResult === "WIN") {
+        setScoreBackground("bg-green-600");
+      } else if (gameResult === "LOSE") {
+        setScoreBackground("bg-red-600");
+      } else if (gameResult === "PUSH") {
+        setScoreBackground("bg-yellow-600");
+      } else {
+        setScoreBackground("bg-gray-700");
+      }
+      setLocalGameOver(true);
+    }
+  }, [
+    initialAnimationComplete,
+    localGameOver,
+    standCardsCount,
+    dealerHand.length,
+    dealerDoneDrawing,
+    dealerScore,
+    gameResult,
+  ]);
+  // Separate useEffect for setting scoreBackground to red when PLAYER BUSTS
+  useEffect(() => {
+    if (playerScore > 21 && localGameOver) {
+      setTimeout(() => {
+        setScoreBackground("bg-red-600");
+      }, 500);
+    }
+  }, [playerScore, localGameOver]);
+
+  const shouldShowFullDealerScore =
+    dealerTurn || (localGameOver && !dealerDoneDrawing);
+
+  function renderInitialCards() {
+    const initialCards = [];
+
+    // Player's initial cards
+    for (let i = 0; i < 2; i++) {
+      if (playerHand[i]) {
+        initialCards.push(
+          <Card
+            key={`player-${playerHand[i].id}`}
+            card={playerHand[i]}
+            person="player"
+            index={i}
+            boardSize={boardSize}
+            delay={i * 1}
+            onAnimationComplete={handleInitialCardAnimationComplete}
+          />
+        );
+      }
+    }
+
+    // Dealer's first card (face-up on initial deal)
+    if (dealerHand[0]) {
+      initialCards.push(
+        <Card
+          key={`dealer-${dealerHand[0].id}`}
+          card={dealerHand[0]}
+          person="dealer"
+          index={0}
+          boardSize={boardSize}
+          delay={0.5}
+          onAnimationComplete={handleInitialCardAnimationComplete}
+        />
+      );
+    }
+
+    // Dealer's second card (face-down on initial deal)
+    if (dealerHand[1]) {
+      initialCards.push(
+        <Card
+          key={`dealer-${dealerHand[1].id}`}
+          card={dealerHand[1]}
+          person="dealer"
+          index={1}
+          boardSize={boardSize}
+          delay={1.5}
+          flipDealerCard={dealerTurn || flipDealerBlackjackCard}
+          onAnimationComplete={handleInitialCardAnimationComplete}
+          updateScoreDealerSecondCard={updateScoreDealerSecondCard}
+        />
+      );
+    }
+
+    return initialCards;
+  }
+
+  function renderHitCards() {
+    return playerHand
+      .slice(2)
+      .map((card, index) => (
+        <Card
+          key={`player-${card.id}`}
+          card={card}
+          person="player"
+          index={index + 2}
+          boardSize={boardSize}
+          delay={0.3}
+        />
+      ));
+  }
+
+  function renderStandCards() {
+    return dealerHand
+      .slice(2)
+      .map((card, index) => (
+        <Card
+          key={`dealer-${card.id}`}
+          card={card}
+          person="dealer"
+          index={index + 2}
+          boardSize={boardSize}
+          delay={0.3 + index * 0.5}
+          onAnimationComplete={handleStandCardAnimationComplete}
+        />
+      ));
+  }
 
   return (
     <div className="flex flex-1">
@@ -308,225 +421,142 @@ const BlackjackGame = () => {
             <input
               className="w-full bg-transparent outline-none text-white"
               placeholder="0.00"
-              onChange={handleBetInputChange}
+              disabled={gameStarted}
+              type="number"
+              value={bet === 0 ? "" : bet}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                const parsedValue = inputValue === "" ? 0 : Number(inputValue);
+                setBet(parsedValue);
+              }}
             />
             <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
           </div>
           <button
-            disabled={isAnimating}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              isAnimating ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            onClick={() => setBet((prev) => Math.floor(prev / 2))}
+            disabled={gameStarted || bet < 2}
+            className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             1/2
           </button>
           <button
-            disabled={isAnimating}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              isAnimating ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            onClick={() => setBet((prev) => prev * 2)}
+            disabled={gameStarted || bet === 0}
+            className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             2x
           </button>
         </section>
-        <section id="blackjack-actions" className="grid grid-cols-2 gap-2 mb-3">
+        <section id="blackjack-actions" className="grid grid-cols-3 gap-2 mb-3">
           <button
-            disabled={isAnimating}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              isAnimating ? "opacity-50 cursor-not-allowed" : ""
+            onClick={handleHitButtonClick}
+            disabled={
+              !initialAnimationComplete || !canPlayerAct || localGameOver
+            }
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 overflow-hidden ${
+              initialAnimationComplete && canPlayerAct && !localGameOver
+                ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
             }`}
           >
             Hit
           </button>
           <button
-            disabled={isAnimating}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              isAnimating ? "opacity-50 cursor-not-allowed" : ""
+            onClick={handleStandButtonClick}
+            disabled={
+              !initialAnimationComplete || !canPlayerAct || localGameOver
+            }
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 overflow-hidden ${
+              initialAnimationComplete && canPlayerAct && !localGameOver
+                ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
             }`}
           >
             Stand
           </button>
           <button
-            disabled={isAnimating}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              isAnimating ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          >
-            Split
-          </button>
-          <button
-            disabled={isAnimating}
-            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg ${
-              isAnimating ? "opacity-50 cursor-not-allowed" : ""
+            onClick={handleDoubleButtonClick}
+            disabled={
+              !initialAnimationComplete ||
+              !canPlayerAct ||
+              localGameOver ||
+              playerHand.length !== 2
+            }
+            className={`bg-slate-500 p-2 rounded text-xs font-bold text-white transition-all duration-200 transform active:scale-90 overflow-hidden ${
+              initialAnimationComplete &&
+              !localGameOver &&
+              canPlayerAct &&
+              playerHand.length === 2
+                ? "hover:bg-slate-700 hover:text-gray-300 cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
             }`}
           >
             Double
           </button>
         </section>
         <button
-          onClick={handleBetClick}
-          disabled={isAnimating}
-          className={`w-full bg-purple-500 p-2 rounded font-bold text-white hover:bg-purple-600 hover:text-gray-300 transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg ${
-            isAnimating ? "opacity-70 cursor-not-allowed" : ""
+          onClick={handleBetButtonClick}
+          disabled={
+            gameStarted ||
+            typeof balance !== "number" ||
+            balance < bet ||
+            bet <= 0
+          }
+          className={`w-full bg-purple-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 ${
+            !gameStarted &&
+            typeof balance === "number" &&
+            balance >= bet &&
+            bet > 0
+              ? "hover:-translate-y-0.5 hover:shadow-lg hover:bg-purple-600 hover:text-gray-300 cursor-pointer"
+              : "opacity-50 cursor-not-allowed"
           }`}
         >
-          {isAnimating ? (
-            <>
-              Betting:{" "}
-              <img
-                src="/coin.png"
-                alt="Coin"
-                className="inline w-5 h-5 mb-0.5"
-              />
-              {bet}
-            </>
-          ) : (
-            "Bet"
-          )}
+          Bet
         </button>
       </aside>
-      <main ref={mainRef} className="flex-1 bg-slate-800 relative">
-        {/* Deck */}
+      <main ref={boardRef} className="flex-1 bg-slate-800 relative">
         <img
           id="deck"
-          ref={deckRef}
           src="/textures/faces/cardback.png"
-          className="w-32 transform absolute top-0 right-0 z-0"
+          className="w-24 transform absolute top-0 right-0 z-0"
           alt="Card Back"
         />
-        {/* Dealer Score */}
-        <div
-          id="dealer-score"
-          ref={dealerScoreDisplayRef}
-          className="absolute text-white font-bold text-lg"
-          style={{
-            top: `${
-              mainRef.current
-                ? mainRef.current.getBoundingClientRect().height *
-                    DEALER_DESIRED_TOP_PERCENT -
-                  120
-                : 0
-            }px`,
-            left: "20px",
-            opacity: 0,
-          }}
-        >
-          Dealer Score: {dealerFaceUpValue}
-        </div>
-        {/* Player Score */}
-        <div
-          id="player-score"
-          ref={playerScoreDisplayRef}
-          className="absolute text-white font-bold text-lg"
-          style={{
-            bottom: `${
-              mainRef.current
-                ? mainRef.current.getBoundingClientRect().height *
-                    PLAYER_DESIRED_TOP_PERCENT -
-                  350
-                : 0
-            }px`,
-            left: "20px",
-            opacity: 0,
-          }}
-        >
-          Player Score: {playerScore === 21 ? "Blackjack!" : playerScore}
-        </div>
+        {renderInitialCards()}
+        {renderHitCards()}
+        {renderStandCards()}
 
-        {/* Player Card 1 */}
-        <div
-          id="player-card-1"
-          ref={playerCard1Ref}
-          className="absolute z-10"
-          style={{
-            top: 0,
-            right: 0,
-            opacity: 0,
-            transform: "rotateY(0deg)",
-          }}
-        >
-          <img
-            src={
-              playerCard1Face === "cardback.png"
-                ? "/textures/faces/cardback.png"
-                : `/textures/faces/${playerCard1Face}`
-            }
-            className="w-32 transform"
-            alt="Player Card 1"
-          />
-        </div>
+        {initialAnimationComplete && (
+          <>
+            {/* Dealer Score Display */}
+            {!shouldShowFullDealerScore && (
+              <div
+                className="absolute top-[35%] left-[35%] transform -translate-x-1/2 bg-gray-700 bg-opacity-75 text-white px-2 py-1 rounded text-sm"
+                style={{ zIndex: 10 }}
+              >
+                {displayedDealerScore}
+              </div>
+            )}
+            {shouldShowFullDealerScore && (
+              <div
+                className="absolute top-[35%] left-[35%] transform -translate-x-1/2 bg-gray-700 bg-opacity-75 text-white px-2 py-1 rounded text-sm"
+                style={{ zIndex: 10 }}
+              >
+                {displayedDealerScore}
+              </div>
+            )}
 
-        {/* Dealer Card 1 */}
-        <div
-          id="dealer-card-1"
-          ref={dealerCard1Ref}
-          className="absolute z-10"
-          style={{
-            top: 0,
-            right: 0,
-            opacity: 0,
-            transform: "rotateY(0deg)",
-          }}
-        >
-          <img
-            src={
-              dealerCard1Face === "cardback.png"
-                ? "/textures/faces/cardback.png"
-                : `/textures/faces/${dealerCard1Face}`
-            }
-            className="w-32 transform"
-            alt="Dealer Card 1"
-          />
-        </div>
-
-        {/* Player Card 2 */}
-        <div
-          id="player-card-2"
-          ref={playerCard2Ref}
-          className="absolute z-10"
-          style={{
-            top: 0,
-            right: 0,
-            opacity: 0,
-            transform: "rotateY(0deg)",
-          }}
-        >
-          <img
-            src={
-              playerCard2Face === "cardback.png"
-                ? "/textures/faces/cardback.png"
-                : `/textures/faces/${playerCard2Face}`
-            }
-            className="w-32 transform"
-            alt="Player Card 2"
-          />
-        </div>
-
-        {/* Dealer Card 2 */}
-        <div
-          id="dealer-card-2"
-          ref={dealerCard2Ref}
-          className="absolute z-10"
-          style={{
-            top: 0,
-            right: 0,
-            opacity: 0,
-            transform: "rotateY(0deg)",
-          }}
-        >
-          <img
-            src={
-              dealerCard2Face === "cardback.png"
-                ? "/textures/faces/cardback.png"
-                : `/textures/faces/${dealerCard2Face}`
-            }
-            className="w-32 transform"
-            alt="Dealer Card 2"
-          />
-        </div>
+            {/* Player Score Display */}
+            <div
+              className={`absolute bottom-[40%] left-[35%] transform -translate-x-1/2 bg-opacity-75 text-white px-2 py-1 rounded text-sm ${scoreBackground}`}
+              style={{ zIndex: 10 }}
+            >
+              {displayedPlayerScore}
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
 };
 
-export default BlackjackGame;
+export default Test;

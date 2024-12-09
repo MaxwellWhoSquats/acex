@@ -35,12 +35,20 @@ const Navbar = () => {
           </Link>
         </section>
 
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="mr-3 bg-gray-300 opacity-60 hover:bg-purple-600 hover:text-white hover:opacity-100 font-bold text-xs text-black py-2 px-4 rounded"
-        >
-          Logout
-        </button>
+        <div id="right-section" className="flex items-center">
+          <Link
+            href="/"
+            className="mr-3 bg-purple-300 opacity-60 hover:bg-purple-600 hover:text-white hover:opacity-100 font-bold text-xs text-black py-2 px-4 rounded"
+          >
+            Home
+          </Link>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="mr-3 bg-gray-300 opacity-60 hover:bg-purple-600 hover:text-white hover:opacity-100 font-bold text-xs text-black py-2 px-4 rounded"
+          >
+            Logout
+          </button>
+        </div>
       </div>
     </nav>
   );

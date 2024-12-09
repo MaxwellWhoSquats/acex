@@ -185,6 +185,8 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
       name: cardName,
     };
 
+    let canContinue = true;
+
     setPlayerHand((prevHand) => {
       const updatedHand = [...prevHand, newCard];
       const playerValue = handValue(updatedHand.map((card) => card.name));
@@ -193,27 +195,18 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
         setGameStarted(false);
         setGameResult("LOSE");
         setGameOver(true);
+        canContinue = false;
       } else if (playerValue === 21) {
         setPlayerHas21(true);
+        // Optionally, you can trigger stand here if desired
       }
       return updatedHand;
     });
 
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Removed the redundant and incorrect score calculation
-    // const currentPlayerScore = handValue(playerHand.map((card) => card.name)) + handValue([cardName]);
-
-    // if (currentPlayerScore > 21) {
-    //   setGameStarted(false);
-    //   setGameResult("LOSE");
-    //   setGameOver(true);
-    // }
-    // return currentPlayerScore <= 21;
-
-    // Instead, derive the return value based on the updated game state
-    return !gameOver;
-  }, [gameStarted, deck, gameOver]);
+    return canContinue;
+  }, [gameStarted, deck]);
 
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -268,6 +261,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
 
     await delay(2000); // Wait before ending the game
     setGameStarted(false);
+    setGameOver(true);
   }, [gameStarted, dealerHand, deck, playerHand]);
 
   const resetGame = useCallback(() => {

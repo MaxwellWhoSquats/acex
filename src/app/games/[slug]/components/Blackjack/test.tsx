@@ -57,6 +57,9 @@ const Test = () => {
   // Ref to track if balance has been updated for the current game
   const balanceUpdatedRef = useRef(false);
 
+  // Ref to track if stand has been scheduled to prevent multiple calls
+  const standScheduledRef = useRef(false);
+
   useEffect(() => {
     const updateSize = () => {
       if (boardRef.current) {
@@ -114,13 +117,22 @@ const Test = () => {
 
   // Automatically stand when playerScore reaches 21
   useEffect(() => {
-    if (playerScore === 21 && canPlayerAct && !localGameOver) {
+    if (
+      playerScore === 21 &&
+      canPlayerAct &&
+      !localGameOver &&
+      !standScheduledRef.current
+    ) {
+      standScheduledRef.current = true;
       setCanPlayerAct(false);
       setTimeout(() => {
-        stand();
+        if (!gameOver) {
+          stand();
+          standScheduledRef.current = false;
+        }
       }, 1000); // Adjust the delay as needed for the animation
     }
-  }, [playerScore, canPlayerAct, localGameOver, stand]);
+  }, [playerScore, canPlayerAct, localGameOver, stand, gameOver]);
 
   // Synchronize displayedPlayerScore with playerScore
   useEffect(() => {
@@ -130,14 +142,12 @@ const Test = () => {
       setLocalGameOver(true);
       setCanPlayerAct(false);
     } else if (playerScore === 21 && canPlayerAct && !localGameOver) {
-      setCanPlayerAct(false);
-      setTimeout(() => {
-        stand();
-      }, 1000);
+      // This block is now handled by the above useEffect to prevent duplication
+      // Removed to avoid calling stand twice
     }
-  }, [playerScore, localGameOver, canPlayerAct, stand]);
+  }, [playerScore, localGameOver, canPlayerAct]);
 
-  function handleBetButtonClick() {
+  async function handleBetButtonClick() {
     if (bet <= 0) {
       alert("Please enter a valid bet amount.");
       return;
@@ -177,6 +187,8 @@ const Test = () => {
     const canContinue = await hit();
     if (canContinue) {
       setCanPlayerAct(true);
+    } else {
+      setLocalGameOver(true);
     }
   }
 
@@ -206,11 +218,17 @@ const Test = () => {
       setBet((prev) => prev * 2);
 
       const canContinue = await hit();
-      if (canContinue) {
+      if (canContinue && !standScheduledRef.current) {
+        standScheduledRef.current = true;
         setCanPlayerAct(false);
         setTimeout(() => {
-          stand();
+          if (!gameOver) {
+            stand();
+            standScheduledRef.current = false;
+          }
         }, 1000);
+      } else if (!canContinue) {
+        setLocalGameOver(true);
       }
     } catch (error) {
       console.error("Failed to double down:", error);

@@ -1,4 +1,3 @@
-// Test.tsx
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -27,6 +26,7 @@ const Test = () => {
   const [initialDealCardsCount, setInitialDealCardsCount] = useState(0);
   const [hitCardsCount, setHitCardsCount] = useState(0);
   const [standCardsCount, setStandCardsCount] = useState(0);
+  const [scoreBackground, setScoreBackground] = useState("bg-gray-700");
 
   const {
     dealCards,
@@ -105,7 +105,6 @@ const Test = () => {
         updateBalance(amountChange)
           .then(() => {
             console.log("Balance updated successfully.");
-            // No need to setLocalGameOver here as it's already true
           })
           .catch((error) => {
             console.error("Failed to update balance:", error);
@@ -130,7 +129,7 @@ const Test = () => {
           stand();
           standScheduledRef.current = false;
         }
-      }, 1000); // Adjust the delay as needed for the animation
+      }, 1000);
     }
   }, [playerScore, canPlayerAct, localGameOver, stand, gameOver]);
 
@@ -141,9 +140,6 @@ const Test = () => {
     if (playerScore > 21 && !localGameOver) {
       setLocalGameOver(true);
       setCanPlayerAct(false);
-    } else if (playerScore === 21 && canPlayerAct && !localGameOver) {
-      // This block is now handled by the above useEffect to prevent duplication
-      // Removed to avoid calling stand twice
     }
   }, [playerScore, localGameOver, canPlayerAct]);
 
@@ -166,7 +162,8 @@ const Test = () => {
     setStandCardsCount(0);
     setLocalGameOver(false);
     setCanPlayerAct(false);
-    setFlipDealerBlackjackCard(false); // Reset the flip state
+    setFlipDealerBlackjackCard(false);
+    setScoreBackground("bg-gray-700");
 
     balanceUpdatedRef.current = false;
 
@@ -245,7 +242,7 @@ const Test = () => {
         setDisplayedPlayerScore(playerScore);
 
         if (playerScore === 21 || dealerScore === 21) {
-          // Immediate outcome (like initial blackjack)
+          // Immediate outcome (initial blackjack)
           setDisplayedDealerScore(dealerScore);
           setLocalGameOver(true);
 
@@ -253,7 +250,7 @@ const Test = () => {
           if (dealerHasBlackjack) {
             setTimeout(() => {
               setFlipDealerBlackjackCard(true);
-            }, 500); // Adjust the delay as needed
+            }, 500);
           }
         } else if (!dealerTurn) {
           // Show partial dealer score (just first card)
@@ -297,6 +294,15 @@ const Test = () => {
       standCardsCount === dealerDrawnCards &&
       dealerDoneDrawing
     ) {
+      if (gameResult === "WIN") {
+        setScoreBackground("bg-green-600");
+      } else if (gameResult === "LOSE") {
+        setScoreBackground("bg-red-600");
+      } else if (gameResult === "PUSH") {
+        setScoreBackground("bg-yellow-600");
+      } else {
+        setScoreBackground("bg-gray-700");
+      }
       setLocalGameOver(true);
     }
   }, [
@@ -306,7 +312,16 @@ const Test = () => {
     dealerHand.length,
     dealerDoneDrawing,
     dealerScore,
+    gameResult,
   ]);
+  // Separate useEffect for setting scoreBackground to red when PLAYER BUSTS
+  useEffect(() => {
+    if (playerScore > 21 && localGameOver) {
+      setTimeout(() => {
+        setScoreBackground("bg-red-600");
+      }, 500);
+    }
+  }, [playerScore, localGameOver]);
 
   const shouldShowFullDealerScore =
     dealerTurn || (localGameOver && !dealerDoneDrawing);
@@ -356,7 +371,6 @@ const Test = () => {
           index={1}
           boardSize={boardSize}
           delay={1.5}
-          // Update flipDealerCard to consider the new flipDealerBlackjackCard state
           flipDealerCard={dealerTurn || flipDealerBlackjackCard}
           onAnimationComplete={handleInitialCardAnimationComplete}
           updateScoreDealerSecondCard={updateScoreDealerSecondCard}
@@ -368,17 +382,18 @@ const Test = () => {
   }
 
   function renderHitCards() {
-    return playerHand.slice(2).map((card, index) => (
-      <Card
-        key={`player-${card.id}`}
-        card={card}
-        person="player"
-        index={index + 2}
-        boardSize={boardSize}
-        delay={0.3}
-        // Removed onAnimationComplete callback
-      />
-    ));
+    return playerHand
+      .slice(2)
+      .map((card, index) => (
+        <Card
+          key={`player-${card.id}`}
+          card={card}
+          person="player"
+          index={index + 2}
+          boardSize={boardSize}
+          delay={0.3}
+        />
+      ));
   }
 
   function renderStandCards() {
@@ -536,7 +551,7 @@ const Test = () => {
 
             {/* Player Score Display */}
             <div
-              className="absolute bottom-[40%] left-[35%] transform -translate-x-1/2 bg-gray-700 bg-opacity-75 text-white px-2 py-1 rounded text-sm"
+              className={`absolute bottom-[40%] left-[35%] transform -translate-x-1/2 bg-opacity-75 text-white px-2 py-1 rounded text-sm ${scoreBackground}`}
               style={{ zIndex: 10 }}
             >
               {displayedPlayerScore}

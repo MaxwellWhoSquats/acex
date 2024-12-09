@@ -1,4 +1,3 @@
-// testblackjack.ts
 import { useState, useCallback } from "react";
 
 interface Card {

@@ -1,6 +1,6 @@
 // Test.tsx
-
 "use client";
+
 import React, { useState, useRef, useEffect } from "react";
 import Card from "./Card";
 import { useBlackjack } from "./testblackjack";
@@ -51,6 +51,9 @@ const Test = () => {
   const [localGameOver, setLocalGameOver] = useState(false);
   const [canPlayerAct, setCanPlayerAct] = useState(false);
 
+  // New state to control delayed flipping of dealer's second card when dealerHasBlackjack is true
+  const [flipDealerBlackjackCard, setFlipDealerBlackjackCard] = useState(false);
+
   // Ref to track if balance has been updated for the current game
   const balanceUpdatedRef = useRef(false);
 
@@ -74,15 +77,15 @@ const Test = () => {
     }
   }, [gameOver, localGameOver]);
 
+  // Modify the balance updating useEffect to wait for localGameOver
   useEffect(() => {
-    if (gameResult && !balanceUpdatedRef.current) {
+    if (gameResult && localGameOver && !balanceUpdatedRef.current) {
       console.log(
         "Updating balance for gameResult:",
         gameResult,
         "with bet:",
         bet
       );
-      // Set the flag immediately to prevent multiple updates
       balanceUpdatedRef.current = true;
 
       let amountChange = 0;
@@ -99,19 +102,40 @@ const Test = () => {
         updateBalance(amountChange)
           .then(() => {
             console.log("Balance updated successfully.");
-            setLocalGameOver(true); // Ensure localGameOver is set
-            // No need to resetGame here
+            // No need to setLocalGameOver here as it's already true
           })
           .catch((error) => {
             console.error("Failed to update balance:", error);
             alert("Failed to update balance. Please contact support.");
-            // Optionally, you might want to revert the initial bet if updating balance fails
           });
-      } else {
-        setLocalGameOver(true); // Ensure localGameOver is set
       }
     }
-  }, [gameResult, bet, updateBalance]);
+  }, [gameResult, localGameOver, bet, updateBalance]);
+
+  // Automatically stand when playerScore reaches 21
+  useEffect(() => {
+    if (playerScore === 21 && canPlayerAct && !localGameOver) {
+      setCanPlayerAct(false);
+      setTimeout(() => {
+        stand();
+      }, 1000); // Adjust the delay as needed for the animation
+    }
+  }, [playerScore, canPlayerAct, localGameOver, stand]);
+
+  // Synchronize displayedPlayerScore with playerScore
+  useEffect(() => {
+    setDisplayedPlayerScore(playerScore);
+
+    if (playerScore > 21 && !localGameOver) {
+      setLocalGameOver(true);
+      setCanPlayerAct(false);
+    } else if (playerScore === 21 && canPlayerAct && !localGameOver) {
+      setCanPlayerAct(false);
+      setTimeout(() => {
+        stand();
+      }, 1000);
+    }
+  }, [playerScore, localGameOver, canPlayerAct, stand]);
 
   function handleBetButtonClick() {
     if (bet <= 0) {
@@ -124,7 +148,6 @@ const Test = () => {
       return;
     }
 
-    // Reset the game state before starting a new game
     resetGame();
 
     setInitialAnimationComplete(false);
@@ -133,8 +156,8 @@ const Test = () => {
     setStandCardsCount(0);
     setLocalGameOver(false);
     setCanPlayerAct(false);
+    setFlipDealerBlackjackCard(false); // Reset the flip state
 
-    // Reset the balance updated flag for the new game
     balanceUpdatedRef.current = false;
 
     // Subtract the bet when placing the bet
@@ -151,7 +174,10 @@ const Test = () => {
   async function handleHitButtonClick() {
     if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
     setCanPlayerAct(false);
-    await hit();
+    const canContinue = await hit();
+    if (canContinue) {
+      setCanPlayerAct(true);
+    }
   }
 
   async function handleStandButtonClick() {
@@ -179,12 +205,12 @@ const Test = () => {
       await updateBalance(-bet);
       setBet((prev) => prev * 2);
 
-      // Perform hit and await its completion
       const canContinue = await hit();
-
-      // If the player hasn't busted, proceed to stand
       if (canContinue) {
-        await stand();
+        setCanPlayerAct(false);
+        setTimeout(() => {
+          stand();
+        }, 1000);
       }
     } catch (error) {
       console.error("Failed to double down:", error);
@@ -193,7 +219,6 @@ const Test = () => {
   }
 
   function handleInitialCardAnimationComplete() {
-    // Called after each initial card finishes its initial deal animation
     setInitialDealCardsCount((prev) => {
       const newCount = prev + 1;
       if (newCount === 4) {
@@ -205,6 +230,13 @@ const Test = () => {
           // Immediate outcome (like initial blackjack)
           setDisplayedDealerScore(dealerScore);
           setLocalGameOver(true);
+
+          // If dealer has blackjack, delay the flip
+          if (dealerHasBlackjack) {
+            setTimeout(() => {
+              setFlipDealerBlackjackCard(true);
+            }, 500); // Adjust the delay as needed
+          }
         } else if (!dealerTurn) {
           // Show partial dealer score (just first card)
           if (dealerHand[0]) {
@@ -219,28 +251,6 @@ const Test = () => {
           }
         }
       }
-      return newCount;
-    });
-  }
-
-  function handleHitCardAnimationComplete() {
-    // Called after each hit card finishes its animation
-    setHitCardsCount((prev) => {
-      const newCount = prev + 1;
-      setDisplayedPlayerScore(playerScore);
-
-      // If player hits 21
-      if (playerScore === 21 && !localGameOver) {
-        setTimeout(() => {
-          setCanPlayerAct(false);
-          stand();
-        }, 1000);
-      } else {
-        if (playerScore < 21 && !localGameOver) {
-          setCanPlayerAct(true);
-        }
-      }
-
       return newCount;
     });
   }
@@ -270,7 +280,6 @@ const Test = () => {
       dealerDoneDrawing
     ) {
       setLocalGameOver(true);
-      // No "Play Again" button, so no need to set any state here
     }
   }, [
     initialAnimationComplete,
@@ -329,7 +338,8 @@ const Test = () => {
           index={1}
           boardSize={boardSize}
           delay={1.5}
-          flipDealerCard={dealerTurn || dealerHasBlackjack}
+          // Update flipDealerCard to consider the new flipDealerBlackjackCard state
+          flipDealerCard={dealerTurn || flipDealerBlackjackCard}
           onAnimationComplete={handleInitialCardAnimationComplete}
           updateScoreDealerSecondCard={updateScoreDealerSecondCard}
         />
@@ -340,19 +350,17 @@ const Test = () => {
   }
 
   function renderHitCards() {
-    return playerHand
-      .slice(2)
-      .map((card, index) => (
-        <Card
-          key={`player-${card.id}`}
-          card={card}
-          person="player"
-          index={index + 2}
-          boardSize={boardSize}
-          delay={0.3}
-          onAnimationComplete={handleHitCardAnimationComplete}
-        />
-      ));
+    return playerHand.slice(2).map((card, index) => (
+      <Card
+        key={`player-${card.id}`}
+        card={card}
+        person="player"
+        index={index + 2}
+        boardSize={boardSize}
+        delay={0.3}
+        // Removed onAnimationComplete callback
+      />
+    ));
   }
 
   function renderStandCards() {

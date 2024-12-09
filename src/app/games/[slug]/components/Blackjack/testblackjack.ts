@@ -1,5 +1,4 @@
 // testblackjack.ts
-
 import { useState, useCallback } from "react";
 
 interface Card {
@@ -13,7 +12,7 @@ interface UseBlackjackReturn {
   playerScore: number;
   dealerScore: number;
   dealCards: () => void;
-  hit: () => Promise<boolean>; // Returns true if player can continue
+  hit: () => Promise<boolean>;
   stand: () => Promise<void>;
   handValue: (hand: string[]) => number;
   playerHas21: boolean;
@@ -47,7 +46,7 @@ const createDeck = (): string[] => {
   return SUITS.flatMap((suit) => VALUES.map((value) => `${value}_of_${suit}`));
 };
 
-const handValue = (hand: string[]): number => {
+export const handValue = (hand: string[]): number => {
   let value = 0;
   let aces = 0;
 
@@ -112,7 +111,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     setGameStarted(true);
     setDealerTurn(false);
     setDealerDoneDrawing(false);
-    setGameResult(""); // Reset gameResult when dealing new cards
+    setGameResult("");
     setDealerHasBlackjack(false);
 
     // Shuffle and reset deck
@@ -178,7 +177,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     const cardIndex = Math.floor(Math.random() * deck.length);
     const cardName = deck[cardIndex];
     const updatedDeck = [...deck];
-    updatedDeck.splice(cardIndex, 1); // Remove the drawn card from the deck
+    updatedDeck.splice(cardIndex, 1);
     setDeck(updatedDeck);
 
     const newCard: Card = {
@@ -195,19 +194,26 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
         setGameResult("LOSE");
         setGameOver(true);
       } else if (playerValue === 21) {
-        setGameResult("WIN");
-        setGameOver(true);
+        setPlayerHas21(true);
       }
       return updatedHand;
     });
 
-    // Simulate async operation (e.g., animation delay)
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Determine if the player can continue
-    const currentPlayerScore = handValue(playerHand.map((card) => card.name)) + handValue([cardName]);
-    return currentPlayerScore <= 21;
-  }, [gameStarted, deck, playerHand]);
+    // Removed the redundant and incorrect score calculation
+    // const currentPlayerScore = handValue(playerHand.map((card) => card.name)) + handValue([cardName]);
+
+    // if (currentPlayerScore > 21) {
+    //   setGameStarted(false);
+    //   setGameResult("LOSE");
+    //   setGameOver(true);
+    // }
+    // return currentPlayerScore <= 21;
+
+    // Instead, derive the return value based on the updated game state
+    return !gameOver;
+  }, [gameStarted, deck, gameOver]);
 
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

@@ -19,6 +19,7 @@ interface UseBlackjackReturn {
   gameStarted: boolean;
   dealerTurn: boolean;
   dealerDoneDrawing: boolean;
+  playerHasBlackjack: boolean;
   dealerHasBlackjack: boolean;
   gameResult: "WIN" | "LOSE" | "PUSH" | "";
   resetGame: () => void;
@@ -95,6 +96,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [dealerTurn, setDealerTurn] = useState<boolean>(false);
   const [dealerDoneDrawing, setDealerDoneDrawing] = useState<boolean>(false);
+  const [playerHasBlackjack, setPlayerHasBlackjack] = useState<boolean>(false);
   const [dealerHasBlackjack, setDealerHasBlackjack] = useState<boolean>(false);
   const [gameResult, setGameResult] = useState<"WIN" | "LOSE" | "PUSH" | "">("");
 
@@ -111,6 +113,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     setDealerTurn(false);
     setDealerDoneDrawing(false);
     setGameResult("");
+    setPlayerHasBlackjack(false);
     setDealerHasBlackjack(false);
 
     // Shuffle and reset deck
@@ -149,6 +152,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     }
 
     if (initialPlayerScore === 21) {
+      setPlayerHasBlackjack(true);
       setPlayerHas21(true);
       setGameStarted(false);
       setGameResult("WIN");
@@ -290,6 +294,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     gameStarted,
     dealerTurn,
     dealerDoneDrawing,
+    playerHasBlackjack,
     dealerHasBlackjack,
     gameResult,
     resetGame,

@@ -40,6 +40,7 @@ const Test = () => {
     gameStarted,
     dealerTurn,
     dealerDoneDrawing,
+    playerHasBlackjack,
     dealerHasBlackjack,
     gameResult,
     resetGame,
@@ -93,7 +94,9 @@ const Test = () => {
 
       let amountChange = 0;
 
-      if (gameResult === "WIN") {
+      if (gameResult === "WIN" && playerHasBlackjack) {
+        amountChange = bet * 2.5; // Return bet + blackjack bonus
+      } else if (gameResult === "WIN") {
         amountChange = bet * 2; // Return bet + winnings
       } else if (gameResult === "PUSH") {
         amountChange = bet; // Return bet

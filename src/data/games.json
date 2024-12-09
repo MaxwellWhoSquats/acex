@@ -10,9 +10,9 @@
       "description": "Collect honey and avoid the bees!"
     },
     {
-      "name": "Astroids",
-      "slug": "astroids",
-      "description": "Collect astroids and watch out for aliens!"
+      "name": "Asteroids",
+      "slug": "asteroids",
+      "description": "Collect asteroids and watch out for aliens!"
     }
   ]
   

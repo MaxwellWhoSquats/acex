@@ -502,7 +502,7 @@ const Test = () => {
             balance < bet ||
             bet <= 0
           }
-          className={`w-full bg-purple-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 ${
+          className={`w-full bg-purple-500 p-4 rounded font-bold text-white transition-all duration-200 transform active:scale-95 ${
             !gameStarted &&
             typeof balance === "number" &&
             balance >= bet &&

@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Card from "./Blackjack/Card";
 import { useBlackjack } from "./Blackjack/blackjack";
 import { useBalance } from "@/app/contexts/BalanceContext";
+import { gsap } from "gsap";
 
 interface BoardSize {
   width: number;
@@ -29,6 +30,7 @@ const Blackjack = () => {
   const [hitCardsCount, setHitCardsCount] = useState(0);
   const [standCardsCount, setStandCardsCount] = useState(0);
   const [scoreBackground, setScoreBackground] = useState("bg-gray-700");
+  const [winnings, setWinnings] = useState<number>(0);
 
   const {
     dealCards,
@@ -94,20 +96,20 @@ const Blackjack = () => {
       );
       balanceUpdatedRef.current = true;
 
-      let amountChange = 0;
+      let winnings = 0;
 
       if (gameResult === "WIN" && playerHasBlackjack) {
-        amountChange = Math.round(bet * 2.5); // Return bet + blackjack bonus in cents
+        winnings = Math.round(bet * 2.5); // Return bet + blackjack bonus in cents
       } else if (gameResult === "WIN") {
-        amountChange = bet * 2; // Return bet + winnings in cents
+        winnings = bet * 2; // Return bet + winnings in cents
       } else if (gameResult === "PUSH") {
-        amountChange = bet; // Return bet in cents
+        winnings = bet; // Return bet in cents
       } else if (gameResult === "LOSE") {
-        amountChange = 0; // Bet already subtracted
+        winnings = 0; // Bet already subtracted
       }
 
-      if (amountChange !== 0) {
-        updateBalance(amountChange)
+      if (winnings !== 0) {
+        updateBalance(winnings)
           .then(() => {
             console.log("Balance updated successfully.");
           })
@@ -116,6 +118,8 @@ const Blackjack = () => {
             alert("Failed to update balance. Please contact support.");
           });
       }
+
+      setWinnings(winnings);
     }
   }, [gameResult, localGameOver, bet, updateBalance, playerHasBlackjack]);
 
@@ -169,6 +173,7 @@ const Blackjack = () => {
     setCanPlayerAct(false);
     setFlipDealerBlackjackCard(false);
     setScoreBackground("bg-gray-700");
+    setWinnings(0);
 
     balanceUpdatedRef.current = false;
 
@@ -342,6 +347,18 @@ const Blackjack = () => {
       }, 500);
     }
   }, [dealerHasBlackjack, localGameOver]);
+
+  // Animate winnings anouncement
+  useEffect(() => {
+    if (gameOver && gameResult === "WIN") {
+      const timeline = gsap.timeline();
+      timeline.fromTo(
+        ".winningsAnouncement",
+        { scale: 0, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)" }
+      );
+    }
+  }, [gameOver, gameResult]);
 
   const shouldShowFullDealerScore =
     dealerTurn || (localGameOver && !dealerDoneDrawing);
@@ -586,6 +603,14 @@ const Blackjack = () => {
             >
               {displayedPlayerScore}
             </div>
+            {gameOver && gameResult === "WIN" && (
+              <div className="winningsAnouncement right-[42%] top-[41%] absolute  bg-green-600 p-8 rounded font-bold z-50 flex flex-col items-center justify-center">
+                <div className="text-2xl flex items-center space-x-1">
+                  <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
+                  <p>{(winnings / 100).toFixed(2)}</p>
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>

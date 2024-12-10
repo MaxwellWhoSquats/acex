@@ -148,6 +148,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
     if (initialPlayerScore === 21 && initialDealerScore === 21) {
       setGameStarted(false);
       setGameResult("PUSH");
+      setGameOver(true);
       return;
     }
 
@@ -156,6 +157,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
       setPlayerHas21(true);
       setGameStarted(false);
       setGameResult("WIN");
+      setGameOver(true);
       return;
     }
 
@@ -163,6 +165,7 @@ export const useBlackjack = (bet: number): UseBlackjackReturn => {
       setDealerHasBlackjack(true);
       setGameStarted(false);
       setGameResult("LOSE");
+      setGameOver(true);
       return;
     }
 

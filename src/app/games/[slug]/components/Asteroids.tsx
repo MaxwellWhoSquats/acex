@@ -270,13 +270,15 @@ const Asteroids = () => {
             Cashout
           </button>
         )}
-        <div id="multiplier">
-          <h2
-            className={`text-sm mt-2 mb-1 ${
-              hasCashedOut ? "text-green-500" : ""
-            }`}
-          >{`Multiplier: ${multiplier}`}</h2>
-        </div>
+        {gameStarted && (
+          <div id="multiplier">
+            <h2
+              className={`text-sm mt-2 mb-1 ${
+                hasCashedOut ? "text-green-500" : ""
+              }`}
+            >{`Multiplier: ${multiplier}`}</h2>
+          </div>
+        )}
       </aside>
 
       {/* Main Content */}

@@ -65,6 +65,9 @@ const Blackjack = () => {
   // Ref to track if stand has been scheduled to prevent multiple calls
   const standScheduledRef = useRef(false);
 
+  // New state flag for double down
+  const [doubleDown, setDoubleDown] = useState(false);
+
   useEffect(() => {
     const updateSize = () => {
       if (boardRef.current) {
@@ -152,151 +155,19 @@ const Blackjack = () => {
     }
   }, [playerScore, localGameOver, canPlayerAct]);
 
-  async function handleBetButtonClick() {
-    if (bet <= 0) {
-      alert("Please enter a valid bet amount.");
-      return;
-    }
-
-    if (typeof balance !== "number" || balance < bet) {
-      alert("Insufficient balance to place this bet.");
-      return;
-    }
-
-    resetGame();
-
-    setInitialAnimationComplete(false);
-    setInitialDealCardsCount(0);
-    setHitCardsCount(0);
-    setStandCardsCount(0);
-    setLocalGameOver(false);
-    setCanPlayerAct(false);
-    setFlipDealerBlackjackCard(false);
-    setScoreBackground("bg-gray-700");
-    setWinnings(0);
-
-    balanceUpdatedRef.current = false;
-
-    // Subtract the bet when placing the bet (bet is already in cents)
-    updateBalance(-bet)
-      .then(() => {
-        dealCards();
-      })
-      .catch((error) => {
-        console.error("Failed to place bet:", error);
-        alert("Failed to place bet. Please try again.");
-      });
-  }
-
-  async function handleHitButtonClick() {
-    if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
-    setCanPlayerAct(false);
-    const canContinue = await hit();
-    if (canContinue) {
-      setCanPlayerAct(true);
-    } else {
-      setLocalGameOver(true);
-    }
-  }
-
-  async function handleStandButtonClick() {
-    if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
-    setCanPlayerAct(false);
-    await stand();
-  }
-
-  async function handleDoubleButtonClick() {
-    if (
-      !initialAnimationComplete ||
-      !canPlayerAct ||
-      localGameOver ||
-      playerHand.length !== 2
-    )
-      return;
-
-    if (typeof balance !== "number" || balance < bet) {
-      alert("Insufficient balance to double down.");
-      return;
-    }
-
-    try {
-      // Subtract the additional bet (same amount as original bet)
-      await updateBalance(-bet);
-      setBet((prev) => prev * 2); // Double the bet in cents
-
-      const canContinue = await hit();
-      if (canContinue && !standScheduledRef.current) {
-        standScheduledRef.current = true;
-        setCanPlayerAct(false);
+  // Double down synchronization with playerHand
+  useEffect(() => {
+    if (doubleDown) {
+      if (playerHand.length === 3) {
+        setDoubleDown(false);
         setTimeout(() => {
-          if (!gameOver) {
-            stand();
-            standScheduledRef.current = false;
-          }
-        }, 1000);
-      } else if (!canContinue) {
-        setLocalGameOver(true);
+          stand();
+        }, 2000); // Delay before standing to allow for animations
       }
-    } catch (error) {
-      console.error("Failed to double down:", error);
-      alert("Failed to double down. Please try again.");
     }
-  }
+  }, [playerHand, doubleDown, stand]);
 
-  function handleInitialCardAnimationComplete() {
-    setInitialDealCardsCount((prev) => {
-      const newCount = prev + 1;
-      if (newCount === 4) {
-        // All initial cards done
-        setInitialAnimationComplete(true);
-        setDisplayedPlayerScore(playerScore);
-
-        if (playerScore === 21 || dealerScore === 21) {
-          // Immediate outcome (initial blackjack)
-          setDisplayedDealerScore(dealerScore);
-
-          // If dealer has blackjack, delay the flip
-          if (dealerHasBlackjack) {
-            setTimeout(() => {
-              setFlipDealerBlackjackCard(true);
-            }, 500);
-          }
-
-          setLocalGameOver(true);
-        } else if (!dealerTurn) {
-          // Show partial dealer score (just first card)
-          if (dealerHand[0]) {
-            setDisplayedDealerScore(handValue([dealerHand[0].name]));
-          }
-          setCanPlayerAct(true);
-        } else {
-          // dealerTurn is true after initial deal
-          setDisplayedDealerScore(dealerScore);
-          if (dealerScore < 17) {
-            setCanPlayerAct(true);
-          }
-        }
-      }
-      return newCount;
-    });
-  }
-
-  function handleStandCardAnimationComplete() {
-    setStandCardsCount((prev) => {
-      const newCount = prev + 1;
-      if (!localGameOver) {
-        setDisplayedDealerScore(dealerScore);
-      }
-      return newCount;
-    });
-  }
-
-  // Callback for updating score after the dealer's second card is flipped
-  function updateScoreDealerSecondCard() {
-    setDisplayedDealerScore(dealerScore);
-  }
-
-  // Finalize the game once all dealer cards are done
+  // Existing useEffect for finalizing the game
   useEffect(() => {
     const dealerDrawnCards = dealerHand.length - 2;
     if (
@@ -325,6 +196,7 @@ const Blackjack = () => {
     dealerScore,
     gameResult,
   ]);
+
   // Separate useEffect for setting scoreBackground to red when PLAYER BUSTS
   useEffect(() => {
     if (playerScore > 21 && localGameOver) {
@@ -333,6 +205,7 @@ const Blackjack = () => {
       }, 500);
     }
   }, [playerScore, localGameOver]);
+
   useEffect(() => {
     if (playerHasBlackjack && localGameOver) {
       setTimeout(() => {
@@ -340,6 +213,7 @@ const Blackjack = () => {
       }, 500);
     }
   }, [playerHasBlackjack, localGameOver]);
+
   useEffect(() => {
     if (dealerHasBlackjack && localGameOver) {
       setTimeout(() => {
@@ -348,7 +222,7 @@ const Blackjack = () => {
     }
   }, [dealerHasBlackjack, localGameOver]);
 
-  // Animate winnings anouncement
+  // Animate winnings announcement
   useEffect(() => {
     if (gameOver && gameResult === "WIN") {
       const timeline = gsap.timeline();
@@ -462,6 +336,144 @@ const Blackjack = () => {
     const betInCents = parsedValue * 100;
     setBet(betInCents);
   };
+
+  async function handleBetButtonClick() {
+    if (bet <= 0) {
+      alert("Please enter a valid bet amount.");
+      return;
+    }
+
+    if (typeof balance !== "number" || balance < bet) {
+      alert("Insufficient balance to place this bet.");
+      return;
+    }
+
+    resetGame();
+
+    setInitialAnimationComplete(false);
+    setInitialDealCardsCount(0);
+    setHitCardsCount(0);
+    setStandCardsCount(0);
+    setLocalGameOver(false);
+    setCanPlayerAct(false);
+    setFlipDealerBlackjackCard(false);
+    setScoreBackground("bg-gray-700");
+    setWinnings(0);
+
+    balanceUpdatedRef.current = false;
+
+    // Subtract the bet when placing the bet (bet is already in cents)
+    updateBalance(-bet)
+      .then(() => {
+        dealCards();
+      })
+      .catch((error) => {
+        console.error("Failed to place bet:", error);
+        alert("Failed to place bet. Please try again.");
+      });
+  }
+
+  async function handleHitButtonClick() {
+    if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
+    setCanPlayerAct(false);
+    const canContinue = await hit();
+    if (canContinue) {
+      setCanPlayerAct(true);
+    } else {
+      setLocalGameOver(true);
+    }
+  }
+
+  async function handleStandButtonClick() {
+    if (!initialAnimationComplete || !canPlayerAct || localGameOver) return;
+    setCanPlayerAct(false);
+    await stand();
+  }
+
+  async function handleDoubleButtonClick() {
+    if (
+      !initialAnimationComplete ||
+      !canPlayerAct ||
+      localGameOver ||
+      playerHand.length !== 2
+    )
+      return;
+
+    if (typeof balance !== "number" || balance < bet) {
+      alert("Insufficient balance to double down.");
+      return;
+    }
+
+    try {
+      // Subtract the additional bet (same amount as original bet)
+      await updateBalance(-bet);
+      setBet((prev) => prev * 2); // Double the bet in cents
+      setDoubleDown(true); // Set the doubleDown flag
+
+      const canContinue = await hit();
+      if (canContinue) {
+        setCanPlayerAct(true);
+      } else {
+        setLocalGameOver(true);
+      }
+    } catch (error) {
+      console.error("Failed to double down:", error);
+      alert("Failed to double down. Please try again.");
+    }
+  }
+
+  function handleInitialCardAnimationComplete() {
+    setInitialDealCardsCount((prev) => {
+      const newCount = prev + 1;
+      if (newCount === 4) {
+        // All initial cards done
+        setInitialAnimationComplete(true);
+        setDisplayedPlayerScore(playerScore);
+
+        if (playerScore === 21 || dealerScore === 21) {
+          // Immediate outcome (initial blackjack)
+          setDisplayedDealerScore(dealerScore);
+
+          // If dealer has blackjack, delay the flip
+          if (dealerHasBlackjack) {
+            setTimeout(() => {
+              setFlipDealerBlackjackCard(true);
+            }, 500);
+          }
+
+          setLocalGameOver(true);
+        } else if (!dealerTurn) {
+          // Show partial dealer score (just first card)
+          if (dealerHand[0]) {
+            setDisplayedDealerScore(handValue([dealerHand[0].name]));
+          }
+          setCanPlayerAct(true);
+        } else {
+          // dealerTurn is true after initial deal
+          setDisplayedDealerScore(dealerScore);
+          if (dealerScore < 17) {
+            setCanPlayerAct(true);
+          }
+        }
+      }
+      return newCount;
+    });
+  }
+
+  function handleStandCardAnimationComplete() {
+    setStandCardsCount((prev) => {
+      const newCount = prev + 1;
+      if (!localGameOver) {
+        setDisplayedDealerScore(dealerScore);
+      }
+      return newCount;
+    });
+  }
+
+  // Callback for updating score after the dealer's second card is flipped
+  function updateScoreDealerSecondCard() {
+    setDisplayedDealerScore(dealerScore);
+  }
 
   return (
     <div className="flex flex-1">

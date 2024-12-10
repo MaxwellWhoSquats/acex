@@ -12,7 +12,7 @@ interface BoardSize {
   height: number;
 }
 
-const Test = () => {
+const Blackjack = () => {
   const boardRef = useRef<HTMLDivElement>(null);
   const [boardSize, setBoardSize] = useState<BoardSize>({
     width: 0,
@@ -322,7 +322,6 @@ const Test = () => {
     dealerScore,
     gameResult,
   ]);
-
   // Separate useEffect for setting scoreBackground to red when PLAYER BUSTS
   useEffect(() => {
     if (playerScore > 21 && localGameOver) {
@@ -331,6 +330,20 @@ const Test = () => {
       }, 500);
     }
   }, [playerScore, localGameOver]);
+  useEffect(() => {
+    if (playerHasBlackjack && localGameOver) {
+      setTimeout(() => {
+        setScoreBackground("bg-green-600");
+      }, 500);
+    }
+  }, [playerHasBlackjack, localGameOver]);
+  useEffect(() => {
+    if (dealerHasBlackjack && localGameOver) {
+      setTimeout(() => {
+        setScoreBackground("bg-red-600");
+      }, 500);
+    }
+  }, [dealerHasBlackjack, localGameOver]);
 
   const shouldShowFullDealerScore =
     dealerTurn || (localGameOver && !dealerDoneDrawing);
@@ -421,35 +434,23 @@ const Test = () => {
       ));
   }
 
-  // Helper function to format bet display in dollars
-  const displayBet = (betInCents: number) => {
-    return betInCents > 0 ? (betInCents / 100).toFixed(2) : "";
-  };
-
-  // Helper function to handle user input and convert dollars to cents
-  const handleBetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    const parsedValue = inputValue === "" ? 0 : parseFloat(inputValue);
-    // Convert dollars to cents and round to nearest integer
-    const betInCents = Math.round(parsedValue * 100);
-    setBet(betInCents);
-  };
-
   return (
     <div className="flex flex-1">
       <aside className="w-1/5 bg-slate-600 p-2">
         <h2 className="text-sm mb-1">Bet Amount</h2>
         <section id="bet" className="flex h-8 space-x-2 mb-3">
-          <div className="bg-slate-800 w-full flex rounded p-2 items-center">
+          <div className="bg-slate-800 w-full flex rounded p-3 items-center">
             <input
               className="w-full bg-transparent outline-none text-white"
-              placeholder="0.00"
+              placeholder="0"
               disabled={gameStarted}
               type="number"
-              min="0"
-              step="0.01"
-              value={bet === 0 ? "" : (bet / 100).toFixed(2)}
-              onChange={handleBetInputChange}
+              value={bet === 0 ? "" : bet}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                const parsedValue = inputValue === "" ? 0 : Number(inputValue);
+                setBet(parsedValue);
+              }}
             />
             <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
           </div>
@@ -582,4 +583,4 @@ const Test = () => {
   );
 };
 
-export default Test;
+export default Blackjack;

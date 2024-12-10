@@ -8,6 +8,7 @@ import { gsap } from "gsap";
 
 const BlackjackGame = dynamic(() => import("./components/BlackjackGame"));
 const AsteroidsGame = dynamic(() => import("./components/Asteroids"));
+const HoneybearGame = dynamic(() => import("./components/Honeybear"));
 
 const GamePage = () => {
   const { slug } = useParams();
@@ -42,6 +43,7 @@ const GamePage = () => {
       <div className="game mt-6 mx-auto w-3/4 h-[80vh] flex justify-center border border-slate-600 rounded">
         {slug === "blackjack" && <BlackjackGame />}
         {slug === "asteroids" && <AsteroidsGame />}
+        {slug === "honeybear" && <HoneybearGame />}
       </div>
     </>
   );

@@ -633,6 +633,12 @@ const Blackjack = () => {
             )}
           </>
         )}
+        {/* Fallback Message for Screens Below Large */}
+        <div className="lg:hidden w-full h-full bg-slate-900 flex items-center justify-center z-50 absolute">
+          <p className="text-white text-lg text-center px-4">
+            Please view on a larger screen.
+          </p>
+        </div>
       </main>
     </div>
   );

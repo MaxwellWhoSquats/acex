@@ -315,6 +315,11 @@ const Asteroids = () => {
           loop={true}
           className="absolute z-0 -bottom-72 rotate-12"
         />
+        <Lottie
+          animationData={starryAnimation}
+          loop={true}
+          className="2xl:hidden absolute z-0 -bottom-4 rotate-12"
+        />
 
         {/* Game Board */}
         <div
@@ -347,6 +352,12 @@ const Asteroids = () => {
             <p className="text-sm mt-2">{multiplier}X</p>
           </div>
         )}
+        {/* Fallback Message for Screens Below Large */}
+        <div className="lg:hidden w-full h-full bg-slate-900 flex items-center justify-center z-50 absolute">
+          <p className="text-white text-lg text-center px-4">
+            Please view on a larger screen.
+          </p>
+        </div>
       </main>
     </div>
   );

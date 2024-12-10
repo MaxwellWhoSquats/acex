@@ -501,8 +501,16 @@ const Blackjack = () => {
             1/2
           </button>
           <button
-            onClick={() => setBet((prev) => prev * 2)}
-            disabled={gameStarted || bet === 0}
+            onClick={() => {
+              if (bet === 0) {
+                setBet(100); // cents
+              } else if (typeof balance === "number" && bet * 2 >= balance) {
+                setBet(balance);
+              } else {
+                setBet(bet * 2);
+              }
+            }}
+            disabled={gameStarted}
             className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             2x

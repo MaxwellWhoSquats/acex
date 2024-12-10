@@ -50,7 +50,7 @@ const Asteroids = () => {
 
     if (isAsteroid) {
       const asteroidSound = new Audio("/sounds/asteroid.wav");
-      asteroidSound.volume = 0.7;
+      asteroidSound.volume = 0.5;
       setTimeout(() => {
         asteroidSound.play();
       }, 300);
@@ -81,6 +81,10 @@ const Asteroids = () => {
         console.error("Failed to place bet:", error);
       });
 
+    const betSound = new Audio("/sounds/select.ogg");
+    betSound.play().catch((error) => {
+      console.error("Failed to play bet sound:", error);
+    });
     // Generate new game
     const newAsteroidIndexes = generateRandomIndexes(totalSquares, asteroids);
     setGameOver(false);
@@ -113,6 +117,10 @@ const Asteroids = () => {
     const cashoutSound = new Audio("/sounds/win.wav");
     cashoutSound.play().catch((error) => {
       console.error("Failed to play cashout sound:", error);
+    });
+    const coinsSound = new Audio("/sounds/coins.wav");
+    coinsSound.play().catch((error) => {
+      console.error("Failed to play coins sound:", error);
     });
 
     setHasCashedOut(true);
@@ -188,7 +196,7 @@ const Asteroids = () => {
               type="number"
               min="0"
               step="1"
-              value={bet === 0 ? "" : displayBet(bet)}
+              value={bet === 0 ? 0 : displayBet(bet)}
               onChange={handleBetInputChange}
             />
             <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
@@ -200,7 +208,15 @@ const Asteroids = () => {
             1/2
           </button>
           <button
-            onClick={() => setBet((prev) => prev * 2)}
+            onClick={() => {
+              if (bet === 0) {
+                setBet(100); // cents
+              } else if (typeof balance === "number" && bet * 2 >= balance) {
+                setBet(balance);
+              } else {
+                setBet(bet * 2);
+              }
+            }}
             className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             2x

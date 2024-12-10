@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Lottie from "lottie-react";
 import astronautAnimation from "../../../../../public/animations/astronaut.json";
 import starryAnimation from "../../../../../public/animations/starry.json";
 import Square from "./Asteroids/Square";
 import { useBalance } from "@/app/contexts/BalanceContext";
+import { gsap } from "gsap";
 
 const Asteroids = () => {
-  const [bet, setBet] = useState(0);
+  const [bet, setBet] = useState<number>(0); // cents
   const [asteroids, setAsteroids] = useState(3);
   const [multiplier, setMultiplier] = useState(1);
   const [asteroidIndexes, setAsteroidIndexes] = useState<number[]>([]);
@@ -18,6 +19,8 @@ const Asteroids = () => {
   );
   const totalSquares = 25;
   const { balance, updateBalance } = useBalance();
+  const [winnings, setWinnings] = useState(0);
+  const [hasCashedOut, setHasCashedOut] = useState(false);
 
   function generateRandomIndexes(total: number, count: number): number[] {
     const indexes = Array.from({ length: total }, (_, i) => i);
@@ -85,6 +88,8 @@ const Asteroids = () => {
     setAsteroidIndexes(newAsteroidIndexes);
     setRevealedSquares(Array(totalSquares).fill(false));
     setSafeClicks(0);
+    setHasCashedOut(false);
+    setWinnings(0);
   }
 
   function handleResetButtonClick() {
@@ -92,6 +97,8 @@ const Asteroids = () => {
   }
 
   function handleCashout() {
+    if (hasCashedOut) return; // Prevent multiple cashouts
+
     // Calculate winnings
     const winnings = bet * multiplier;
     // Add winnings to balance
@@ -102,6 +109,16 @@ const Asteroids = () => {
       .catch((error) => {
         console.error("Failed to add winnings to balance:", error);
       });
+
+    const cashoutSound = new Audio("/sounds/win.wav");
+    cashoutSound.play().catch((error) => {
+      console.error("Failed to play cashout sound:", error);
+    });
+
+    setHasCashedOut(true);
+    setGameOver(true);
+    setGameStarted(false);
+    setWinnings(winnings);
   }
 
   function calculateMultiplier(asteroids: number, safeClicks: number): number {
@@ -130,28 +147,49 @@ const Asteroids = () => {
     return Math.round(multi * 100) / 100;
   }
 
+  const displayBet = (betInCents: number) => {
+    return betInCents > 0 ? (betInCents / 100).toFixed(0) : "";
+  };
+
+  const handleBetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const parsedValue = inputValue === "" ? 0 : parseInt(inputValue, 10);
+    // Convert dollars to cents
+    const betInCents = parsedValue * 100;
+    setBet(betInCents);
+  };
+
   useEffect(() => {
     setMultiplier(calculateMultiplier(asteroids, safeClicks));
-  }, [safeClicks]);
+  }, [safeClicks, asteroids]);
+
+  // Animate winnings anouncement
+  useEffect(() => {
+    if (winnings && hasCashedOut && !gameStarted) {
+      const timeline = gsap.timeline();
+      timeline.fromTo(
+        ".winningsAnouncement",
+        { scale: 0, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)" }
+      );
+    }
+  }, [winnings, hasCashedOut, gameStarted]);
 
   return (
     <div className="flex flex-1">
       {/* Sidebar */}
       <aside className="w-1/5 bg-slate-600 p-2">
         <h2 className="text-sm mb-1">Bet Amount</h2>
-        <section id="bet" className="flex h-8 space-x-2 mb-8">
+        <section id="bet" className="flex h-8 space-x-2 mb-3">
           <div className="bg-slate-800 w-full flex rounded p-2 items-center">
             <input
               className="w-full bg-transparent outline-none text-white"
-              placeholder="0.00"
+              placeholder="0"
               type="number"
               min="0"
-              value={bet === 0 ? "" : bet}
-              onChange={(e) => {
-                const inputValue = e.target.value;
-                const parsedValue = inputValue === "" ? 0 : Number(inputValue);
-                setBet(parsedValue);
-              }}
+              step="1"
+              value={bet === 0 ? "" : displayBet(bet)}
+              onChange={handleBetInputChange}
             />
             <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
           </div>
@@ -188,10 +226,18 @@ const Asteroids = () => {
         {!gameOver && (
           <button
             onClick={handleBetButtonClick}
-            disabled={gameStarted}
+            disabled={
+              gameStarted ||
+              bet === 0 ||
+              typeof balance !== "number" ||
+              balance < bet
+            }
             className={`w-full bg-purple-500 p-4 rounded font-bold text-white
             ${
-              gameStarted
+              gameStarted ||
+              bet === 0 ||
+              typeof balance !== "number" ||
+              balance < bet
                 ? "bg-opacity-50 cursor-not-allowed"
                 : "transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg hover:bg-purple-600 hover:text-gray-300"
             }`}
@@ -201,13 +247,22 @@ const Asteroids = () => {
         )}
         {gameOver && (
           <button
+            disabled={bet === 0 || typeof balance !== "number" || balance < bet}
             onClick={handleResetButtonClick}
-            className="w-full bg-purple-500 p-4 rounded font-bold text-white transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg hover:bg-purple-600 hover:text-gray-300"
+            className={`w-full bg-purple-500 p-4 rounded font-bold text-white
+              ${
+                gameStarted ||
+                bet === 0 ||
+                typeof balance !== "number" ||
+                balance < bet
+                  ? "bg-opacity-50 cursor-not-allowed"
+                  : "transition-all duration-200 transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg hover:bg-purple-600 hover:text-gray-300"
+              }`}
           >
             Bet Again
           </button>
         )}
-        {gameStarted && (
+        {gameStarted && !hasCashedOut && (
           <button
             onClick={handleCashout}
             className="w-full mt-6 bg-green-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 hover:bg-green-600 hover:text-gray-300"
@@ -216,7 +271,11 @@ const Asteroids = () => {
           </button>
         )}
         <div id="multiplier">
-          <h2 className="text-sm mt-2 mb-1">{`Multiplier: ${multiplier}`}</h2>
+          <h2
+            className={`text-sm mt-2 mb-1 ${
+              hasCashedOut ? "text-green-500" : ""
+            }`}
+          >{`Multiplier: ${multiplier}`}</h2>
         </div>
       </aside>
 
@@ -261,6 +320,15 @@ const Asteroids = () => {
             />
           ))}
         </div>
+        {hasCashedOut && (
+          <div className="winningsAnouncement absolute bg-green-600 p-8 rounded font-bold z-50 flex flex-col items-center justify-center">
+            <div className="text-2xl flex items-center space-x-1">
+              <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
+              <p>{(winnings / 100).toFixed(2)}</p>
+            </div>
+            <p className="text-sm mt-2">{multiplier}X</p>
+          </div>
+        )}
       </main>
     </div>
   );

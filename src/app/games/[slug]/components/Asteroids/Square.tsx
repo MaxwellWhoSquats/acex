@@ -47,7 +47,7 @@ const Square = ({
   return (
     <div
       onClick={handleClick}
-      className={`flex items-center justify-center backdrop-blur-lg border border-white border-opacity-20 rounded-xl transition-colors duration-100 z-50
+      className={`flex items-center justify-center backdrop-blur-lg border border-white border-opacity-20 rounded-xl transition-colors duration-100 z-40
         ${!revealed ? "hover:bg-opacity-10 cursor-pointer" : ""}
         ${
           revealed

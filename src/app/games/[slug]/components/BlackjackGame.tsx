@@ -434,23 +434,35 @@ const Blackjack = () => {
       ));
   }
 
+  // Helper function to format bet display in dollars
+  const displayBet = (betInCents: number) => {
+    return betInCents > 0 ? (betInCents / 100).toFixed(0) : "";
+  };
+
+  // Helper function to handle user input and convert dollars to cents
+  const handleBetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const parsedValue = inputValue === "" ? 0 : parseInt(inputValue, 10);
+    // Convert dollars to cents
+    const betInCents = parsedValue * 100;
+    setBet(betInCents);
+  };
+
   return (
     <div className="flex flex-1">
       <aside className="w-1/5 bg-slate-600 p-2">
         <h2 className="text-sm mb-1">Bet Amount</h2>
-        <section id="bet" className="flex h-8 space-x-2 mb-3">
+        <section id="bet" className="flex h-10 space-x-2 mb-3">
           <div className="bg-slate-800 w-full flex rounded p-3 items-center">
             <input
               className="w-full bg-transparent outline-none text-white"
               placeholder="0"
               disabled={gameStarted}
               type="number"
-              value={bet === 0 ? "" : bet}
-              onChange={(e) => {
-                const inputValue = e.target.value;
-                const parsedValue = inputValue === "" ? 0 : Number(inputValue);
-                setBet(parsedValue);
-              }}
+              min="0"
+              step="1"
+              value={bet === 0 ? "" : displayBet(bet)}
+              onChange={handleBetInputChange}
             />
             <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
           </div>

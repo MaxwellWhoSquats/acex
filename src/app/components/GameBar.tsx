@@ -23,7 +23,7 @@ const GameBar = () => {
             href={`/games/blackjack`}
             className="w-40 bg-slate-700 border-4 border-purple-950 text-white rounded shadow hover:scale-105 transition ease-in-out"
           >
-            <img src="/bjlogo.jpeg" alt="Blackjack" />
+            <img src="/blackjacklogo.jpeg" alt="Blackjack" />
           </Link>
           <Link
             href={`/games/asteroids`}

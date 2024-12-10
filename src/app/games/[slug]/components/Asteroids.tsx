@@ -75,6 +75,8 @@ const Asteroids = () => {
     handleBetButtonClick();
   }
 
+  function handleCashout() {}
+
   function calculateMultiplier(asteroids: number, safeClicks: number): number {
     const houseOdds = 0.01;
     const totalSquares = 25;
@@ -177,8 +179,13 @@ const Asteroids = () => {
             Bet Again
           </button>
         )}
+        {gameStarted && (
+          <button className="w-full mt-6 bg-green-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 hover:bg-green-600 hover:text-gray-300">
+            Cashout
+          </button>
+        )}
         <div id="multiplier">
-          <h2 className="text-sm mt-6 mb-1">{`Multiplier: ${multiplier}`}</h2>
+          <h2 className="text-sm mt-2 mb-1">{`Multiplier: ${multiplier}`}</h2>
         </div>
       </aside>
 

@@ -47,13 +47,13 @@ const Square = ({
   return (
     <div
       onClick={handleClick}
-      className={`flex items-center justify-center backdrop-blur-lg border border-white border-opacity-30 rounded-xl transition-colors duration-100 z-50
+      className={`flex items-center justify-center backdrop-blur-lg border border-white border-opacity-20 rounded-xl transition-colors duration-100 z-50
         ${!revealed ? "hover:bg-opacity-10 cursor-pointer" : ""}
         ${
           revealed
             ? isAsteroid
-              ? "bg-orange-900 bg-opacity-50"
-              : "bg-green-400 bg-opacity-50"
+              ? "bg-gradient-to-br from-orange-950 to-amber-900"
+              : "bg-gradient-to-br from-green-900 to-green-400"
             : "bg-transparent"
         }`}
       style={{
@@ -65,7 +65,7 @@ const Square = ({
         <img
           ref={gemRef}
           className="gem"
-          src="/topaz.svg"
+          src="/crystal.svg"
           alt="Asteroid"
           style={{
             width: "70%",
@@ -76,7 +76,7 @@ const Square = ({
       {isAsteroid && revealed && (
         <img
           ref={asteroidRef}
-          className="gem ml-1"
+          className="gem ml-1.5 mb-1"
           src="/asteroid.svg"
           alt="Asteroid"
           style={{

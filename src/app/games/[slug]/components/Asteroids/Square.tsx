@@ -65,7 +65,7 @@ const Square = ({
         <img
           ref={gemRef}
           className="gem"
-          src="/crystal.svg"
+          src="/gem.svg"
           alt="Asteroid"
           style={{
             width: "70%",

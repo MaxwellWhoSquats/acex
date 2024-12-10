@@ -452,8 +452,8 @@ const Blackjack = () => {
     <div className="flex flex-1">
       <aside className="w-1/5 bg-slate-600 p-2">
         <h2 className="text-sm mb-1">Bet Amount</h2>
-        <section id="bet" className="flex h-10 space-x-2 mb-3">
-          <div className="bg-slate-800 w-full flex rounded p-3 items-center">
+        <section id="bet" className="flex h-8 space-x-2 mb-3">
+          <div className="bg-slate-800 w-full flex rounded p-2 items-center">
             <input
               className="w-full bg-transparent outline-none text-white"
               placeholder="0"

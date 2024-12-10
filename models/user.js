@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema({
     },
     balance: { 
         type: Number, 
-        default: 1000 
+        default: 100000, // Represents acutal balance * 100 (cents)
+        min: 0,
     },
 }, { timestamps: true }
 );

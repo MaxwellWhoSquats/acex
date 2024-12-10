@@ -11,9 +11,9 @@ import { useSession } from "next-auth/react";
 import axios from "axios";
 
 interface BalanceContextProps {
-  balance: number | string;
+  balance: number | string; // Balance in cents
   setBalance: (newBalance: number | string) => void;
-  updateBalance: (amount: number) => Promise<void>;
+  updateBalance: (amount: number) => Promise<void>; // Amount in cents
 }
 
 const BalanceContext = createContext<BalanceContextProps | undefined>(
@@ -31,7 +31,7 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
         .get("/api/balance")
         .then((response: { data: { balance: number } }) => {
           setBalance(response.data.balance);
-          console.log(`Fetched Balance: ${response.data.balance}`);
+          console.log(`Fetched Balance: ${response.data.balance} cents`);
         })
         .catch((error: any) => {
           console.error("Failed to fetch balance:", error);
@@ -48,13 +48,18 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const newBalance = balance + amount;
+      const newBalance = parseFloat((balance + amount).toFixed(2)); // Round to 2 decimal places
+      if (newBalance < 0) {
+        alert("Insufficient balance.");
+        return;
+      }
+
       console.log(`Updating Balance: ${balance} + ${amount} = ${newBalance}`);
       setBalance(newBalance);
 
       try {
         const response = await axios.patch("/api/balance", { amount });
-        setBalance(response.data.balance);
+        setBalance(parseFloat(response.data.balance.toFixed(2)));
         console.log(`Balance updated on server: ${response.data.balance}`);
       } catch (error: any) {
         console.error("Failed to update balance:", error);

@@ -46,7 +46,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const newBalance = user.balance + amount;
+    const newBalance = parseFloat((user.balance + amount).toFixed(2));
     if (newBalance < 0) {
       return NextResponse.json({ error: "Insufficient balance." }, { status: 400 });
     }

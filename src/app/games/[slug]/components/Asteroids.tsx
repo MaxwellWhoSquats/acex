@@ -3,6 +3,7 @@ import Lottie from "lottie-react";
 import astronautAnimation from "../../../../../public/animations/astronaut.json";
 import starryAnimation from "../../../../../public/animations/starry.json";
 import Square from "./Asteroids/Square";
+import { useBalance } from "@/app/contexts/BalanceContext";
 
 const Asteroids = () => {
   const [bet, setBet] = useState(0);
@@ -16,6 +17,7 @@ const Asteroids = () => {
     Array(25).fill(false)
   );
   const totalSquares = 25;
+  const { balance, updateBalance } = useBalance();
 
   function generateRandomIndexes(total: number, count: number): number[] {
     const indexes = Array.from({ length: total }, (_, i) => i);
@@ -63,6 +65,20 @@ const Asteroids = () => {
   }
 
   function handleBetButtonClick() {
+    if (typeof balance !== "number" || balance < bet) {
+      alert("Insufficient balance to place this bet.");
+      return;
+    }
+    // Deduct bet from balance
+    updateBalance(-bet)
+      .then(() => {
+        console.log("Bet placed successfully.");
+      })
+      .catch((error) => {
+        console.error("Failed to place bet:", error);
+      });
+
+    // Generate new game
     const newAsteroidIndexes = generateRandomIndexes(totalSquares, asteroids);
     setGameOver(false);
     setGameStarted(true);
@@ -75,7 +91,18 @@ const Asteroids = () => {
     handleBetButtonClick();
   }
 
-  function handleCashout() {}
+  function handleCashout() {
+    // Calculate winnings
+    const winnings = bet * multiplier;
+    // Add winnings to balance
+    updateBalance(winnings)
+      .then(() => {
+        console.log("Winnings added to balance successfully.");
+      })
+      .catch((error) => {
+        console.error("Failed to add winnings to balance:", error);
+      });
+  }
 
   function calculateMultiplier(asteroids: number, safeClicks: number): number {
     const houseOdds = 0.01;
@@ -118,6 +145,7 @@ const Asteroids = () => {
               className="w-full bg-transparent outline-none text-white"
               placeholder="0.00"
               type="number"
+              min="0"
               value={bet === 0 ? "" : bet}
               onChange={(e) => {
                 const inputValue = e.target.value;
@@ -180,7 +208,10 @@ const Asteroids = () => {
           </button>
         )}
         {gameStarted && (
-          <button className="w-full mt-6 bg-green-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 hover:bg-green-600 hover:text-gray-300">
+          <button
+            onClick={handleCashout}
+            className="w-full mt-6 bg-green-500 p-2 rounded font-bold text-white transition-all duration-200 transform active:scale-95 hover:bg-green-600 hover:text-gray-300"
+          >
             Cashout
           </button>
         )}

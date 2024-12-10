@@ -1,3 +1,5 @@
+// Blackjack.tsx
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -16,7 +18,9 @@ const Test = () => {
     width: 0,
     height: 0,
   });
-  const [bet, setBet] = useState(0);
+
+  // Initialize bet in cents
+  const [bet, setBet] = useState<number>(0); // Stored in cents
 
   const { balance, updateBalance } = useBalance();
 
@@ -95,11 +99,11 @@ const Test = () => {
       let amountChange = 0;
 
       if (gameResult === "WIN" && playerHasBlackjack) {
-        amountChange = bet * 2.5; // Return bet + blackjack bonus
+        amountChange = Math.round(bet * 2.5); // Return bet + blackjack bonus in cents
       } else if (gameResult === "WIN") {
-        amountChange = bet * 2; // Return bet + winnings
+        amountChange = bet * 2; // Return bet + winnings in cents
       } else if (gameResult === "PUSH") {
-        amountChange = bet; // Return bet
+        amountChange = bet; // Return bet in cents
       } else if (gameResult === "LOSE") {
         amountChange = 0; // Bet already subtracted
       }
@@ -115,7 +119,7 @@ const Test = () => {
           });
       }
     }
-  }, [gameResult, localGameOver, bet, updateBalance]);
+  }, [gameResult, localGameOver, bet, updateBalance, playerHasBlackjack]);
 
   // Automatically stand when playerScore reaches 21
   useEffect(() => {
@@ -170,7 +174,7 @@ const Test = () => {
 
     balanceUpdatedRef.current = false;
 
-    // Subtract the bet when placing the bet
+    // Subtract the bet when placing the bet (bet is already in cents)
     updateBalance(-bet)
       .then(() => {
         dealCards();
@@ -213,9 +217,9 @@ const Test = () => {
     }
 
     try {
-      // Subtract the additional bet
+      // Subtract the additional bet (same amount as original bet)
       await updateBalance(-bet);
-      setBet((prev) => prev * 2);
+      setBet((prev) => prev * 2); // Double the bet in cents
 
       const canContinue = await hit();
       if (canContinue && !standScheduledRef.current) {
@@ -247,7 +251,6 @@ const Test = () => {
         if (playerScore === 21 || dealerScore === 21) {
           // Immediate outcome (initial blackjack)
           setDisplayedDealerScore(dealerScore);
-          setLocalGameOver(true);
 
           // If dealer has blackjack, delay the flip
           if (dealerHasBlackjack) {
@@ -255,6 +258,8 @@ const Test = () => {
               setFlipDealerBlackjackCard(true);
             }, 500);
           }
+
+          setLocalGameOver(true);
         } else if (!dealerTurn) {
           // Show partial dealer score (just first card)
           if (dealerHand[0]) {
@@ -317,6 +322,7 @@ const Test = () => {
     dealerScore,
     gameResult,
   ]);
+
   // Separate useEffect for setting scoreBackground to red when PLAYER BUSTS
   useEffect(() => {
     if (playerScore > 21 && localGameOver) {
@@ -415,6 +421,20 @@ const Test = () => {
       ));
   }
 
+  // Helper function to format bet display in dollars
+  const displayBet = (betInCents: number) => {
+    return betInCents > 0 ? (betInCents / 100).toFixed(2) : "";
+  };
+
+  // Helper function to handle user input and convert dollars to cents
+  const handleBetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const parsedValue = inputValue === "" ? 0 : parseFloat(inputValue);
+    // Convert dollars to cents and round to nearest integer
+    const betInCents = Math.round(parsedValue * 100);
+    setBet(betInCents);
+  };
+
   return (
     <div className="flex flex-1">
       <aside className="w-1/5 bg-slate-600 p-2">
@@ -426,18 +446,16 @@ const Test = () => {
               placeholder="0.00"
               disabled={gameStarted}
               type="number"
-              value={bet === 0 ? "" : bet}
-              onChange={(e) => {
-                const inputValue = e.target.value;
-                const parsedValue = inputValue === "" ? 0 : Number(inputValue);
-                setBet(parsedValue);
-              }}
+              min="0"
+              step="0.01"
+              value={bet === 0 ? "" : (bet / 100).toFixed(2)}
+              onChange={handleBetInputChange}
             />
             <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
           </div>
           <button
             onClick={() => setBet((prev) => Math.floor(prev / 2))}
-            disabled={gameStarted || bet < 2}
+            disabled={gameStarted || bet < 200} // At least $2.00 to halve
             className="bg-slate-500 p-2 rounded text-xs font-bold text-white hover:bg-slate-700 hover:text-gray-300 transition-all duration-200 transform active:scale-90 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             1/2
@@ -450,6 +468,7 @@ const Test = () => {
             2x
           </button>
         </section>
+
         <section id="blackjack-actions" className="grid grid-cols-3 gap-2 mb-3">
           <button
             onClick={handleHitButtonClick}
@@ -497,6 +516,7 @@ const Test = () => {
             Double
           </button>
         </section>
+
         <button
           onClick={handleBetButtonClick}
           disabled={

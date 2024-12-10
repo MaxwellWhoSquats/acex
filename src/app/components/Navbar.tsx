@@ -1,3 +1,5 @@
+// Navbar.tsx
+
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import React from "react";
@@ -12,19 +14,22 @@ const inter = Inter({
 const Navbar = () => {
   const { balance } = useBalance();
 
+  const displayBalance =
+    typeof balance === "number" ? `${(balance / 100).toFixed(2)}` : "...";
+
   return (
     <nav className="mt-6 mx-6 md:mx-9 topBar flex items-center">
       <img src="/logo.png" alt="Logo" className="w-20" />
-      <div className="p-2 px-4 flex w-full rounded-lg shadow-lg justify-between items-center">
+      <div className="p-2 px-4 flex w-full rounded-lg shadow-lg justify-between items-center relative">
         <h2 className="font-bold text-2xl">Ace-X</h2>
         <section
           id="balance"
           className="absolute left-1/2 transform -translate-x-1/2 flex"
         >
-          <div className="bg-slate-800 p-2 w-24 rounded-l flex items-center justify-center">
+          <div className="bg-slate-800 p-2 w-32 rounded-l flex items-center justify-center">
             <img src="/coin.png" alt="Coin" className="w-6 mr-1" />
             <p className={`${inter.className} text-white font-bold`}>
-              {balance}
+              {displayBalance}
             </p>
           </div>
           <Link
@@ -38,13 +43,13 @@ const Navbar = () => {
         <div id="right-section" className="flex items-center">
           <Link
             href="/"
-            className="mr-3 bg-purple-300 opacity-60 hover:bg-purple-600 hover:text-white hover:opacity-100 font-bold text-xs text-black py-2 px-4 rounded"
+            className="mr-3 bg-purple-300 opacity-60 hover:bg-purple-600 hover:text-white hover:opacity-100 font-bold text-xs text-black py-2 px-4 rounded transition-all duration-200"
           >
             Home
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="mr-3 bg-gray-300 opacity-60 hover:bg-purple-600 hover:text-white hover:opacity-100 font-bold text-xs text-black py-2 px-4 rounded"
+            className="mr-3 bg-gray-300 opacity-60 hover:bg-purple-600 hover:text-white hover:opacity-100 font-bold text-xs text-black py-2 px-4 rounded transition-all duration-200"
           >
             Logout
           </button>

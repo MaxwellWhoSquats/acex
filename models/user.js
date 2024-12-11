@@ -12,12 +12,14 @@ const userSchema = new mongoose.Schema({
     },
     balance: { 
         type: Number, 
-        default: 100000, // Represents acutal balance * 100 (cents)
+        default: 100000, // user starts with $1000 (cents)
         min: 0,
     },
-}, { timestamps: true }
-);
+    lastRefilled: {
+        type: Date,
+        default: null
+    }
+}, { timestamps: true });
 
 const User = models.User || mongoose.model("User", userSchema);
-
 export default User;

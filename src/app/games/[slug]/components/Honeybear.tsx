@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Tile from "../Honeybear/Tile";
 import { useBalance } from "@/app/contexts/BalanceContext";
 
@@ -16,6 +16,8 @@ const Honeybear = () => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const totalRows = 9;
+
   // Shuffle array using Fisher-Yates Shuffle
   function shuffleArray(array: number[]): number[] {
     const shuffled = [...array];
@@ -31,7 +33,7 @@ const Honeybear = () => {
     const beesPerRow = difficulty;
     const newBeeIndexes: number[] = [];
 
-    for (let row = 0; row < 9; row++) {
+    for (let row = 0; row < totalRows; row++) {
       const rowStart = row * 4;
       const rowTiles = [0, 1, 2, 3].map((col) => rowStart + col);
       const shuffled = shuffleArray(rowTiles);
@@ -64,6 +66,13 @@ const Honeybear = () => {
     return nonBeeTiles.some((index) => revealedTiles[index]);
   }
 
+  const activeRow = useMemo(() => {
+    for (let row = totalRows - 1; row >= 0; row--) {
+      if (!isRowCompleted(row)) return row;
+    }
+    return totalRows;
+  }, [revealedTiles, beeIndexes]);
+
   // Start the game
   function handleBetButtonClick() {
     if (typeof balance !== "number" || balance < bet) {
@@ -87,26 +96,37 @@ const Honeybear = () => {
   }
 
   // Handle tile click
-  function handleTileClick(index: number) {
+  function handleTileClick(index: number, isBee: boolean) {
     if (!gameStarted || gameOver || hasCashedOut || revealedTiles[index])
       return;
 
     const rowIndex = Math.floor(index / 4);
-    if (isRowCompleted(rowIndex)) {
-      // The row is already completed; prevent selecting this tile
+
+    if (rowIndex !== activeRow) {
       return;
     }
 
+    // Reveal tile
     setRevealedTiles((prev) => {
       const newRevealed = [...prev];
       newRevealed[index] = true;
       return newRevealed;
     });
 
-    if (beeIndexes.includes(index)) {
+    if (isBee) {
       // Hit a bee - Game Over
       setGameOver(true);
       setGameStarted(false);
+      const beeSound = new Audio("/sounds/bee.wav");
+      beeSound.play().catch((error) => {
+        console.error("Failed to play bee sound:", error);
+      });
+    } else {
+      const honeySound = new Audio("/sounds/honey.wav");
+      honeySound.volume = 0.8;
+      honeySound.play().catch((error) => {
+        console.error("Failed to play honey sound:", error);
+      });
     }
   }
 
@@ -116,22 +136,24 @@ const Honeybear = () => {
     beeIndexes: number[]
   ): number {
     const tilesPerRow = 4;
-    const totalRows = 9; // Total number of rows is fixed at 9
-
     let completedRows = 0;
 
     for (let row = 0; row < totalRows; row++) {
-      const rowStart = row * tilesPerRow;
-      const rowTileIndices = [0, 1, 2, 3].map((col) => rowStart + col);
-      const nonBeeTiles = rowTileIndices.filter(
-        (index) => !beeIndexes.includes(index)
-      );
-      const anyNonBeeRevealed = nonBeeTiles.some(
-        (index) => revealedTiles[index]
-      );
-      if (anyNonBeeRevealed) {
+      if (isRowCompleted(row)) {
         completedRows += 1;
       }
+    }
+
+    if (completedRows === totalRows) {
+      setRevealedTiles((prev) => {
+        const newRevealed = [...prev];
+        for (let i = 0; i < newRevealed.length; i++) {
+          newRevealed[i] = true;
+        }
+        return newRevealed;
+      });
+      setGameStarted(false);
+      setGameOver(true);
     }
 
     return completedRows;
@@ -380,8 +402,7 @@ const Honeybear = () => {
             className="absolute top-[22%] left-[34%] w-[32%] h-[70%] bg-amber-600 bg-opacity-20 backdrop-blur-md z-30 rounded border border-amber-950 border-opacity-40 grid grid-cols-4 gap-x-2 p-2"
           >
             {revealedTiles.length === 0
-              ? // If the game hasn't started, show all unrevealed tiles
-                Array.from({ length: 36 }).map((_, index) => (
+              ? Array.from({ length: 36 }).map((_, index) => (
                   <Tile
                     key={index}
                     isBee={false}
@@ -389,31 +410,48 @@ const Honeybear = () => {
                     onTileClick={() => {}}
                     gameOver={gameOver}
                     revealed={false}
-                    isSelectable={false} // Tiles are unselectable before the game starts
+                    isSelectable={false}
                   />
                 ))
-              : // Game has started, render tiles with revealed state
-                Array.from({ length: 36 }).map((_, index) => {
-                  const isBee = beeIndexes.includes(index);
-                  const isRevealed = revealedTiles[index];
-                  const rowIndex = Math.floor(index / 4);
-                  const rowCompleted = isRowCompleted(rowIndex);
-                  const isSelectable = !rowCompleted || isRevealed;
+              : Array.from({ length: totalRows })
+                  .reverse()
+                  .flatMap((_, row) => {
+                    const actualRow = row;
+                    const rowStart = actualRow * 4;
+                    return [0, 1, 2, 3].map((col) => rowStart + col);
+                  })
+                  .map((index) => {
+                    const isBee = beeIndexes.includes(index);
+                    const isRevealed = revealedTiles[index];
+                    const rowIndex = Math.floor(index / 4);
 
-                  return (
-                    <Tile
-                      key={index}
-                      isBee={isBee}
-                      gameStarted={gameStarted}
-                      gameOver={gameOver}
-                      revealed={isRevealed}
-                      onTileClick={
-                        isSelectable ? () => handleTileClick(index) : () => {}
-                      }
-                      isSelectable={isSelectable}
-                    />
-                  );
-                })}
+                    const isSelectable =
+                      rowIndex === activeRow &&
+                      gameStarted &&
+                      !gameOver &&
+                      !hasCashedOut &&
+                      !isRevealed;
+
+                    return (
+                      <Tile
+                        key={index}
+                        isBee={isBee}
+                        gameStarted={gameStarted}
+                        gameOver={gameOver}
+                        revealed={isRevealed}
+                        onTileClick={
+                          isSelectable
+                            ? () =>
+                                handleTileClick(
+                                  index,
+                                  beeIndexes.includes(index)
+                                )
+                            : () => {}
+                        }
+                        isSelectable={isSelectable}
+                      />
+                    );
+                  })}
           </div>
         </div>
 

@@ -7,7 +7,7 @@ interface TileProps {
   onTileClick: () => void;
   gameOver: boolean;
   revealed: boolean;
-  isSelectable: boolean; // New prop added
+  isSelectable: boolean;
 }
 
 const Tile: React.FC<TileProps> = ({

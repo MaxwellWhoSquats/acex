@@ -8,6 +8,8 @@ interface TileProps {
   gameOver: boolean;
   revealed: boolean;
   isSelectable: boolean;
+  userSelected: boolean;
+  didWinGame: boolean;
 }
 
 const Tile: React.FC<TileProps> = ({
@@ -16,7 +18,9 @@ const Tile: React.FC<TileProps> = ({
   onTileClick,
   gameOver,
   revealed,
-  isSelectable, // Destructure the new prop
+  isSelectable,
+  userSelected,
+  didWinGame,
 }) => {
   const honeyRef = useRef<HTMLImageElement | null>(null);
   const beeRef = useRef<HTMLImageElement | null>(null);
@@ -46,6 +50,24 @@ const Tile: React.FC<TileProps> = ({
     }
   }, [revealed, isBee]);
 
+  // Determine background color based on conditions
+  let bgColor = "bg-amber-950"; // Default
+  if (revealed) {
+    if (isBee) {
+      bgColor = "bg-red-500";
+    } else {
+      // If the game is a MAX win and tile is userSelected, turn it green immediately
+      // Otherwise, use the normal honey color
+      if (gameOver && userSelected && didWinGame) {
+        bgColor = "bg-green-500";
+      } else {
+        bgColor = "bg-yellow-500";
+      }
+    }
+  } else if (isSelectable && gameStarted && !revealed && !gameOver) {
+    bgColor = "bg-orange-500";
+  }
+
   return (
     <div
       onClick={handleClick}
@@ -55,9 +77,7 @@ const Tile: React.FC<TileProps> = ({
             ? "cursor-pointer hover:scale-105"
             : "cursor-not-allowed"
         }
-        ${
-          revealed ? (isBee ? "bg-red-500" : "bg-yellow-500") : "bg-amber-950"
-        }`}
+        ${bgColor}`}
       style={{
         width: "100%",
         aspectRatio: "1.8",

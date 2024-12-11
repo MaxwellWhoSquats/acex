@@ -53,6 +53,17 @@ const Honeybear = () => {
     setGameOver(false);
   }
 
+  // Helper function to check if a row is completed
+  function isRowCompleted(rowIndex: number): boolean {
+    const tilesPerRow = 4;
+    const rowStart = rowIndex * tilesPerRow;
+    const rowTileIndices = [0, 1, 2, 3].map((col) => rowStart + col);
+    const nonBeeTiles = rowTileIndices.filter(
+      (index) => !beeIndexes.includes(index)
+    );
+    return nonBeeTiles.some((index) => revealedTiles[index]);
+  }
+
   // Start the game
   function handleBetButtonClick() {
     if (typeof balance !== "number" || balance < bet) {
@@ -79,6 +90,12 @@ const Honeybear = () => {
   function handleTileClick(index: number) {
     if (!gameStarted || gameOver || hasCashedOut || revealedTiles[index])
       return;
+
+    const rowIndex = Math.floor(index / 4);
+    if (isRowCompleted(rowIndex)) {
+      // The row is already completed; prevent selecting this tile
+      return;
+    }
 
     setRevealedTiles((prev) => {
       const newRevealed = [...prev];
@@ -372,12 +389,16 @@ const Honeybear = () => {
                     onTileClick={() => {}}
                     gameOver={gameOver}
                     revealed={false}
+                    isSelectable={false} // Tiles are unselectable before the game starts
                   />
                 ))
               : // Game has started, render tiles with revealed state
                 Array.from({ length: 36 }).map((_, index) => {
                   const isBee = beeIndexes.includes(index);
                   const isRevealed = revealedTiles[index];
+                  const rowIndex = Math.floor(index / 4);
+                  const rowCompleted = isRowCompleted(rowIndex);
+                  const isSelectable = !rowCompleted || isRevealed;
 
                   return (
                     <Tile
@@ -386,7 +407,10 @@ const Honeybear = () => {
                       gameStarted={gameStarted}
                       gameOver={gameOver}
                       revealed={isRevealed}
-                      onTileClick={() => handleTileClick(index)}
+                      onTileClick={
+                        isSelectable ? () => handleTileClick(index) : () => {}
+                      }
+                      isSelectable={isSelectable}
                     />
                   );
                 })}

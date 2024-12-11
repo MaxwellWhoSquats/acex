@@ -7,6 +7,7 @@ interface TileProps {
   onTileClick: () => void;
   gameOver: boolean;
   revealed: boolean;
+  isSelectable: boolean; // New prop added
 }
 
 const Tile: React.FC<TileProps> = ({
@@ -15,12 +16,13 @@ const Tile: React.FC<TileProps> = ({
   onTileClick,
   gameOver,
   revealed,
+  isSelectable, // Destructure the new prop
 }) => {
   const honeyRef = useRef<HTMLImageElement | null>(null);
   const beeRef = useRef<HTMLImageElement | null>(null);
 
   function handleClick() {
-    if (!gameStarted || revealed || gameOver) return;
+    if (!isSelectable || !gameStarted || revealed || gameOver) return;
     onTileClick();
   }
 
@@ -47,7 +49,15 @@ const Tile: React.FC<TileProps> = ({
   return (
     <div
       onClick={handleClick}
-      className="flex bg-amber-950 items-center justify-center rounded transition-all duration-200 transform active:scale-95 cursor-pointer mt-1.5"
+      className={`flex items-center justify-center rounded transition-all duration-200 transform mt-1.5
+        ${
+          isSelectable && gameStarted && !revealed && !gameOver
+            ? "cursor-pointer hover:scale-105"
+            : "cursor-not-allowed"
+        }
+        ${
+          revealed ? (isBee ? "bg-red-500" : "bg-yellow-500") : "bg-amber-950"
+        }`}
       style={{
         width: "100%",
         aspectRatio: "1.8",

@@ -21,6 +21,9 @@ const Asteroids = () => {
   const { balance, updateBalance } = useBalance();
   const [winnings, setWinnings] = useState(0);
   const [hasCashedOut, setHasCashedOut] = useState(false);
+  const [displayHowToPlay, setDisplayHowToPlay] = useState(false);
+  const [displayAccreditations, setDisplayAccreditations] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   function generateRandomIndexes(total: number, count: number): number[] {
     const indexes = Array.from({ length: total }, (_, i) => i);
@@ -179,6 +182,63 @@ const Asteroids = () => {
     }
   }, [winnings, hasCashedOut, gameStarted]);
 
+  // Animate how to play
+  useEffect(() => {
+    if (displayHowToPlay) {
+      const timeline = gsap.timeline();
+      timeline.fromTo(
+        ".howToPlay",
+        { scale: 0, opacity: 0 },
+        {
+          scale: 1,
+          opacity: 1,
+          duration: 0.4,
+          ease: "back.out(1.7)",
+        }
+      );
+    }
+  }, [displayHowToPlay]);
+
+  // Animate accreditations
+  useEffect(() => {
+    if (displayAccreditations) {
+      const timeline = gsap.timeline();
+      timeline.fromTo(
+        ".accreditations",
+        { scale: 0, opacity: 0 },
+        {
+          scale: 1,
+          opacity: 1,
+          duration: 0.4,
+          ease: "back.out(1.7)",
+        }
+      );
+    }
+  }, [displayAccreditations]);
+
+  // Initialize background audio
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio("/sounds/asteroidsmusic.mp3");
+      audioRef.current.volume = 0.2;
+      audioRef.current.loop = true;
+    }
+
+    const playAudio = setTimeout(() => {
+      audioRef.current
+        ?.play()
+        .catch((error) => console.error("Error playing audio:", error));
+    }, 500);
+
+    return () => {
+      clearTimeout(playAudio);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div className="flex flex-1">
       {/* Sidebar */}
@@ -291,6 +351,22 @@ const Asteroids = () => {
             >{`Multiplier: ${multiplier}`}</h2>
           </div>
         )}
+        <div className="flex space-x-2 absolute left-[13.4%] bottom-[10%]">
+          {/* How to play */}
+          <button
+            onClick={() => setDisplayHowToPlay(true)}
+            className="bg-slate-700 p-2 rounded text-sm opacity-60 hover:opacity-100 hover:scale-105 active:scale-95 transition-all duration-200"
+          >
+            How to play
+          </button>
+          {/* Accreditations */}
+          <button
+            onClick={() => setDisplayAccreditations(true)}
+            className="bg-slate-700 p-2 rounded text-sm opacity-60 hover:opacity-100 hover:scale-105 active:scale-95 transition-all duration-200"
+          >
+            Accreditations
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -354,6 +430,106 @@ const Asteroids = () => {
             Please view on a larger screen.
           </p>
         </div>
+        {displayHowToPlay && (
+          <div className="howToPlay z-50 absolute top-[21%] right-[22%] w-[50%] h-[60%] p-6 rounded-lg bg-slate-800 font-sans shadow-lg flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl text-white font-bold">How to Play</h2>
+              <button
+                onClick={() => setDisplayHowToPlay(false)}
+                className="font-bold text-white text-xl bg-slate-600 hover:bg-slate-700 p-1 px-3 rounded transition-all"
+              >
+                X
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto text-white space-y-6 pr-2">
+              <section className="space-y-2">
+                <h3 className="text-lg font-semibold">Introduction</h3>
+                <p className="text-sm leading-relaxed">
+                  In this Asteroids game, hidden among the grid of tiles are a
+                  set number of asteroids. Your task is to pick safe squares to
+                  increase your multiplier and potential winnings, but hitting
+                  an asteroid ends the game. The more squares you safely reveal,
+                  the bigger your multiplier— and the risk.
+                </p>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-lg font-semibold">Step-by-Step</h3>
+                <ul className="text-sm list-disc list-inside leading-relaxed">
+                  <li>
+                    <span className="font-semibold">Set Your Bet:</span> Choose
+                    your wager and click <strong>Bet</strong> to start the
+                    round.
+                  </li>
+                  <li>
+                    <span className="font-semibold">
+                      Select Difficulty (Asteroids):
+                    </span>
+                    Decide how many asteroids (3 to 24) will be hidden. More
+                    asteroids mean higher potential payouts, but increased risk.
+                  </li>
+                  <li>
+                    <span className="font-semibold">Reveal Safe Squares:</span>{" "}
+                    Click tiles to reveal them. Each safe square boosts your
+                    multiplier and potential winnings.
+                  </li>
+                  <li>
+                    <span className="font-semibold">Avoid the Asteroids:</span>{" "}
+                    Hitting an asteroid ends the game and you lose your bet.
+                  </li>
+                  <li>
+                    <span className="font-semibold">Cash Out Anytime:</span> You
+                    can cash out at any point to lock in your current winnings
+                    before risking another pick.
+                  </li>
+                </ul>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-lg font-semibold">Risk & Reward</h3>
+                <p className="text-sm leading-relaxed">
+                  Every safe pick you make increases your multiplier. Fewer
+                  asteroids make it easier to pick safely, but yield smaller
+                  multipliers. Choosing more asteroids raises the stakes and the
+                  potential payouts, but one wrong move and it’s over.
+                </p>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-lg font-semibold">Strategy</h3>
+                <p className="text-sm leading-relaxed">
+                  Deciding when to stop is key. Do you cash out early for a
+                  guaranteed profit, or push your luck to reveal more safe
+                  squares and chase a higher multiplier? The choice is yours.
+                </p>
+              </section>
+            </div>
+          </div>
+        )}
+        {displayAccreditations && (
+          <div className="accreditations z-50 absolute top-[21%] right-[22%] w-[50%] h-[60%] p-6 rounded-lg bg-slate-800 font-sans shadow-lg flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl text-white font-bold">Accreditations</h2>
+              <button
+                onClick={() => setDisplayAccreditations(false)}
+                className="font-bold text-white text-xl bg-slate-600 hover:bg-slate-700 p-1 px-3 rounded transition-all"
+              >
+                X
+              </button>
+            </div>
+
+            {/* Content */}
+            <p>
+              Music from #Uppbeat (free for Creators!):
+              https://uppbeat.io/t/braden-deal/floating-in-empty-space License
+              code: IAL8F6UVQZ5MZKKL
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );

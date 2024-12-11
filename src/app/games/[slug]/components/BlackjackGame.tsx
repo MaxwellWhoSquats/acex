@@ -225,12 +225,19 @@ const Blackjack = () => {
   // Animate winnings announcement
   useEffect(() => {
     if (gameOver && gameResult === "WIN") {
-      const timeline = gsap.timeline();
-      timeline.fromTo(
-        ".winningsAnouncement",
-        { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)" }
-      );
+      const coinsSound = new Audio("/sounds/coins.wav");
+      coinsSound.volume = 0.5;
+
+      // Slight delay
+      setTimeout(() => {
+        coinsSound.play();
+        const timeline = gsap.timeline();
+        timeline.fromTo(
+          ".winningsAnouncement",
+          { scale: 0, opacity: 0, visibility: "visible" },
+          { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)" }
+        );
+      }, 50);
     }
   }, [gameOver, gameResult]);
 
@@ -441,7 +448,9 @@ const Blackjack = () => {
             }, 500);
           }
 
-          setLocalGameOver(true);
+          setTimeout(() => {
+            setLocalGameOver(true);
+          }, 300);
         } else if (!dealerTurn) {
           // Show partial dealer score (just first card)
           if (dealerHand[0]) {
@@ -624,7 +633,14 @@ const Blackjack = () => {
               {displayedPlayerScore}
             </div>
             {gameOver && gameResult === "WIN" && (
-              <div className="winningsAnouncement right-[42%] top-[41%] absolute  bg-green-600 p-8 rounded font-bold z-50 flex flex-col items-center justify-center">
+              <div
+                className="winningsAnouncement right-[42%] top-[41%] absolute bg-green-600 p-8 rounded font-bold z-50 flex flex-col items-center justify-center"
+                style={{
+                  transform: "scale(0)",
+                  opacity: 0,
+                  visibility: "hidden",
+                }}
+              >
                 <div className="text-2xl flex items-center space-x-1">
                   <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
                   <p>{(winnings / 100).toFixed(2)}</p>

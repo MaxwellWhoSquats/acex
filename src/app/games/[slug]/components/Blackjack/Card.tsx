@@ -69,7 +69,7 @@ const Card = React.memo(
           delay,
           onStart: () => {
             const dealSound = new Audio("/sounds/dealSound.ogg");
-            dealSound.volume = 0.2;
+            dealSound.volume = 0.6;
             dealSound.play().catch((error: any) => {
               console.error("Error playing deal sound", error);
             });
@@ -124,7 +124,7 @@ const Card = React.memo(
         setIsFlipped(true);
 
         const flipSound = new Audio("/sounds/dealSound.ogg");
-        flipSound.volume = 0.2;
+        flipSound.volume = 0.6;
         const timeline = gsap.timeline({
           onStart: () => {
             flipSound.play().catch((error: any) => {

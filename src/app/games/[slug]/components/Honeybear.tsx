@@ -223,6 +223,7 @@ const Honeybear = () => {
 
   function handleCashout(forcedMultiplier?: number) {
     if (hasCashedOut) return;
+    setHasCashedOut(true);
 
     // Use the forcedMultiplier if provided, otherwise use the state multiplier
     const currentMultiplier =
@@ -231,7 +232,6 @@ const Honeybear = () => {
 
     updateBalance(finalWinnings)
       .then(() => {
-        setHasCashedOut(true);
         setGameOver(true);
         setGameStarted(false);
         setWinnings(finalWinnings);

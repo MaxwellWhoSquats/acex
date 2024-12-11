@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import Tile from "../Honeybear/Tile";
 import { useBalance } from "@/app/contexts/BalanceContext";
+import { gsap } from "gsap";
 
 const Honeybear = () => {
   const [bet, setBet] = useState<number>(0); // in cents
@@ -173,9 +174,9 @@ const Honeybear = () => {
     if (difficulty === 1) {
       multi = 1.31 * Math.pow(4 / 3, rowsComplete - 1);
     } else if (difficulty === 2) {
-      multi = 1.47 * Math.pow(3 / 2, rowsComplete - 1);
-    } else if (difficulty === 3) {
       multi = Math.pow(difficulty, rowsComplete) * (1 - houseOdds);
+    } else if (difficulty === 3) {
+      multi = 0.98 * 4 ** rowsComplete;
     }
 
     return Number(multi.toFixed(2));
@@ -246,6 +247,18 @@ const Honeybear = () => {
     difficulty,
     beeIndexes,
   ]);
+
+  // Animate winnings anouncement
+  useEffect(() => {
+    if (winnings && hasCashedOut && !gameStarted) {
+      const timeline = gsap.timeline();
+      timeline.fromTo(
+        ".winningsAnouncement",
+        { scale: 0, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)" }
+      );
+    }
+  }, [winnings, hasCashedOut, gameStarted]);
 
   return (
     <div className="flex flex-1">
@@ -362,20 +375,6 @@ const Honeybear = () => {
             <h3>Multiplier: {multiplier}x</h3>
           </div>
         )}
-
-        {/* Display Game Over Message */}
-        {gameOver && (
-          <div className="mt-4 text-red-500">
-            <h3>Game Over!</h3>
-          </div>
-        )}
-
-        {/* Display Cashout Message */}
-        {hasCashedOut && (
-          <div className="mt-4 text-green-500">
-            <h3>Cashed Out at {(winnings / 100).toFixed(2)} Coins!</h3>
-          </div>
-        )}
       </aside>
 
       {/* Main Content */}
@@ -454,7 +453,15 @@ const Honeybear = () => {
                   })}
           </div>
         </div>
-
+        {hasCashedOut && (
+          <div className="winningsAnouncement absolute top-[41%] right-[44%] bg-green-600 p-8 rounded font-bold z-50 flex flex-col items-center justify-center">
+            <div className="text-2xl flex items-center space-x-1">
+              <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
+              <p>{(winnings / 100).toFixed(2)}</p>
+            </div>
+            <p className="text-sm mt-2">{multiplier}X</p>
+          </div>
+        )}
         {/* Fallback Message for Screens Below Large */}
         <div className="xl:hidden w-full h-full bg-slate-900 flex items-center justify-center">
           <p className="text-white text-lg text-center px-4">

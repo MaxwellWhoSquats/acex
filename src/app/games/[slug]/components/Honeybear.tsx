@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import Tile from "../Honeybear/Tile";
 import { useBalance } from "@/app/contexts/BalanceContext";
 import { gsap } from "gsap";
+import Lottie from "lottie-react";
+import beeAnimation from "../../../../../public/animations/beeanimation.json";
 
 const Honeybear = () => {
   const [bet, setBet] = useState<number>(0); // in cents
@@ -236,6 +238,11 @@ const Honeybear = () => {
 
         // Update multiplier state now that user cashed out with the final multiplier
         setMultiplier(currentMultiplier);
+        const coinsSound = new Audio("/sounds/coins.wav");
+        coinsSound.volume = 0.5;
+        coinsSound.play().catch((error) => {
+          console.error("Failed to play coins sound:", error);
+        });
       })
       .catch((error) => {
         console.error("Failed to add winnings:", error);
@@ -248,10 +255,6 @@ const Honeybear = () => {
           newRevealed[i] = true;
         }
         return newRevealed;
-      });
-      const coinsSound = new Audio("/sounds/coins.wav");
-      coinsSound.play().catch((error) => {
-        console.error("Failed to play coins sound:", error);
       });
     }, 700);
   }
@@ -347,7 +350,108 @@ const Honeybear = () => {
         }
       );
     }
-  });
+  }, [displayHowToPlay]);
+
+  // Bee animation delays
+  const [playSecond, setPlaySecond] = useState(false);
+  const [playThird, setPlayThird] = useState(false);
+  const [playFourth, setPlayFourth] = useState(false);
+
+  // Animate bees
+  useEffect(() => {
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+
+      if (elapsed >= 2000 && !playSecond) {
+        setPlaySecond(true);
+      }
+
+      if (elapsed >= 5000 && !playThird) {
+        setPlayThird(true);
+      }
+
+      if (elapsed >= 7000 && !playFourth) {
+        setPlayFourth(true);
+        clearInterval(interval);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [playSecond, playThird, playFourth]);
+
+  // Animate bear winning sequence
+  useEffect(() => {
+    if (winnings && hasCashedOut && !gameStarted) {
+      const timeline = gsap.timeline({ delay: 1 });
+      const bearSound = new Audio("/sounds/bear.mp3");
+      const dingSound = new Audio("/sounds/ding.mp3");
+      bearSound.volume = 0.4;
+
+      // Animate bear in and play bear sound on start
+      timeline.fromTo(
+        ".bear",
+        { scale: 0, opacity: 0 },
+        {
+          scale: 1,
+          opacity: 1,
+          duration: 0.6,
+          ease: "back.out(1.7)",
+          onStart: () => {
+            bearSound.play();
+            dingSound.play();
+          },
+        }
+      );
+
+      // Animate honey in with stagger and create a new audio instance for each honey
+      timeline.fromTo(
+        ".honey",
+        { scale: 0, opacity: 0 },
+        {
+          scale: 1,
+          opacity: 1,
+          delay: 0.3,
+          duration: 0.4,
+          ease: "back.out(1.7)",
+          stagger: {
+            each: 0.12,
+            onStart: (index, target) => {
+              const honeySoundInstance = new Audio("/sounds/honeypop.mp3");
+              honeySoundInstance.play().catch((error) => {
+                console.error("Error playing honey sound:", error);
+              });
+            },
+          },
+        },
+        "<"
+      );
+
+      // Pause before animating them out
+      timeline.to({}, { duration: 0.5 });
+
+      // Animate bear out
+      timeline.to(".bear", {
+        scale: 0,
+        opacity: 0,
+        duration: 0.5,
+        ease: "back.in(1.7)",
+      });
+
+      // Animate honey out simultaneously
+      timeline.to(
+        ".honey",
+        {
+          scale: 0,
+          opacity: 0,
+          duration: 0.5,
+          stagger: 0.1,
+          ease: "back.in(1.7)",
+        },
+        "<"
+      );
+    }
+  }, [winnings, hasCashedOut, gameStarted]);
 
   return (
     <div className="flex flex-1">
@@ -471,6 +575,63 @@ const Honeybear = () => {
 
       {/* Main Content */}
       <main className="flex flex-1 relative overflow-hidden">
+        {/* Bee Animation */}
+        <Lottie
+          animationData={beeAnimation}
+          loop
+          autoplay
+          className="absolute z-10 hidden xl:block"
+        />
+        {playSecond && (
+          <Lottie
+            animationData={beeAnimation}
+            loop
+            autoplay
+            style={{ transform: "scaleX(-1)" }}
+            className="absolute z-10 top-10 rotate-12 hidden xl:block"
+          />
+        )}
+        {playThird && (
+          <Lottie
+            animationData={beeAnimation}
+            loop
+            autoplay
+            className="absolute z-10 top-24 hidden xl:block"
+          />
+        )}
+        {playFourth && (
+          <Lottie
+            animationData={beeAnimation}
+            loop
+            autoplay
+            className="absolute z-10 top-40 -rotate-45 hidden xl:block"
+          />
+        )}
+        {hasCashedOut && (
+          <div>
+            <img
+              src="/bear.svg"
+              alt="bear"
+              className="bear absolute z-50 w-72 top-[30%] left-[37%] opacity-0"
+            />
+            <img
+              src="/honey.svg"
+              alt="honey"
+              className="honey absolute z-50 w-28 top-[28%] left-[36%] opacity-0"
+            />
+            <img
+              src="/honey.svg"
+              alt="honey"
+              className="honey absolute z-50 w-28 top-[24%] left-[44.5%] opacity-0"
+            />
+            <img
+              src="/honey.svg"
+              alt="honey"
+              className="honey absolute z-50 w-28 top-[28%] left-[53%] opacity-0"
+            />
+          </div>
+        )}
+
         {/* Background Images for Large Screens and Above */}
         <div className="hidden xl:block w-full h-full relative">
           {/* Forest Image */}
@@ -483,14 +644,14 @@ const Honeybear = () => {
           {/* Tree Overlay */}
           <img
             src="/tree.svg"
-            className="absolute top-0 left-[10%] w-[100%] h-[100%] scale-125 object-cover z-10 rotate-2"
+            className="absolute top-0 left-[10%] w-[100%] h-[100%] scale-125 object-cover z-20 rotate-2"
             alt="Honeybear"
           />
 
           {/* Game Board */}
           <div
             id="board"
-            className="absolute top-[22%] left-[34%] w-[32%] h-[70%] bg-amber-600 bg-opacity-20 backdrop-blur-md z-30 rounded border border-amber-950 border-opacity-40 grid grid-cols-4 gap-x-2 p-2"
+            className="absolute top-[22%] left-[34%] w-[32%] h-[70%] bg-amber-600 bg-opacity-20 backdrop-blur-md z-30 rounded border border-amber-950 border-opacity-20 grid grid-cols-4 gap-x-2 p-2"
           >
             {revealedTiles.length === 0
               ? Array.from({ length: 36 }).map((_, index) => (
@@ -549,7 +710,7 @@ const Honeybear = () => {
                   })}
           </div>
         </div>
-        {hasCashedOut && (
+        {/* {hasCashedOut && (
           <div className="winningsAnouncement absolute top-[41%] right-[42%] bg-green-600 p-8 rounded font-bold z-50 flex flex-col items-center justify-center">
             <div className="text-2xl flex items-center space-x-1">
               <img src="/coin.png" className="w-7 h-7 mb-0.5" alt="Coin" />
@@ -557,7 +718,7 @@ const Honeybear = () => {
             </div>
             <p className="text-sm mt-2">{multiplier}X</p>
           </div>
-        )}
+        )} */}
         {displayHowToPlay && (
           <div className="howToPlay z-50 absolute top-[21%] right-[22%] w-[50%] h-[60%] p-6 rounded-lg bg-slate-800 font-sans shadow-lg flex flex-col">
             {/* Header */}

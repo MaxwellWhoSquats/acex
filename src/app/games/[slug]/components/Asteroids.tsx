@@ -114,10 +114,6 @@ const Asteroids = () => {
         console.error("Failed to add winnings to balance:", error);
       });
 
-    const cashoutSound = new Audio("/sounds/win.wav");
-    cashoutSound.play().catch((error) => {
-      console.error("Failed to play cashout sound:", error);
-    });
     const coinsSound = new Audio("/sounds/coins.wav");
     coinsSound.play().catch((error) => {
       console.error("Failed to play coins sound:", error);

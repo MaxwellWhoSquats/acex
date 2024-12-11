@@ -1,16 +1,40 @@
 "use client";
-import { useLayoutEffect, useState, useRef } from "react";
+import { useLayoutEffect, useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import ViewCanvas from "./components/ViewCanvas";
 import OnboardForm from "./components/OnboardForm";
+import debounce from "lodash.debounce";
 
 const Onboard = () => {
+  const [isLargeScreen, setIsLargeScreen] = useState<boolean | null>(null);
   const [showTagline1, setShowTagline1] = useState(true);
   const [showTagline2, setShowTagline2] = useState(true);
   const [showRest, setShowRest] = useState(false);
-  const containerRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Function to check screen width
+  const checkScreenSize = () => {
+    if (typeof window !== "undefined") {
+      setIsLargeScreen(window.innerWidth >= 1024);
+    }
+  };
+
+  // Monitor screen size on mount and resize with debouncing
+  useEffect(() => {
+    const debouncedCheck = debounce(checkScreenSize, 200);
+    debouncedCheck(); // Initial check
+
+    window.addEventListener("resize", debouncedCheck);
+    return () => {
+      window.removeEventListener("resize", debouncedCheck);
+      debouncedCheck.cancel();
+    };
+  }, []);
+
+  // Animate Taglines Only on Large Screens
   useLayoutEffect(() => {
+    if (!isLargeScreen) return; // Do not run animations on small screens
+
     let ctx = gsap.context(() => {
       const tl = gsap.timeline();
 
@@ -71,10 +95,12 @@ const Onboard = () => {
     }, containerRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [isLargeScreen]);
 
-  // Animate the rest of the content
+  // Animate the rest of the content Only on Large Screens
   useLayoutEffect(() => {
+    if (!isLargeScreen) return; // Do not run animations on small screens
+
     if (showRest) {
       gsap.to(".restContent", {
         opacity: 1,
@@ -96,8 +122,9 @@ const Onboard = () => {
         }
       );
     }
-  }, [showRest]);
+  }, [showRest, isLargeScreen]);
 
+  // Function to render letters individually for animation
   const renderLetters = (name: string) => {
     if (!name) return null;
 
@@ -107,6 +134,26 @@ const Onboard = () => {
       </span>
     ));
   };
+
+  // Fallback for Small Screens
+  if (isLargeScreen === false) {
+    return (
+      <div
+        className="w-full h-screen bg-slate-900 flex items-center justify-center"
+        role="alert"
+        aria-live="assertive"
+      >
+        <p className="text-white text-lg text-center px-4">
+          Please view on a larger screen.
+        </p>
+      </div>
+    );
+  }
+
+  // While screen size is being determined, render nothing or a loader
+  if (isLargeScreen === null) {
+    return null;
+  }
 
   return (
     <div ref={containerRef}>

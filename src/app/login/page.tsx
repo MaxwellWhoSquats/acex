@@ -1,32 +1,59 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { gsap } from "gsap";
 import ViewCanvas from "./components/ViewCanvas";
 import LoginForm from "./components/LoginForm";
-import Navbar from "../components/Navbar";
 
-const Onboard = () => {
+const Login = () => {
+  const [isLargeScreen, setIsLargeScreen] = useState(true);
+
+  // Function to check screen width
+  const checkScreenSize = () => {
+    if (typeof window !== "undefined") {
+      setIsLargeScreen(window.innerWidth >= 1024);
+    }
+  };
+
   useEffect(() => {
-    gsap.to(".restContent", {
-      opacity: 1,
-      duration: 2,
-      delay: 0.7,
-    });
+    checkScreenSize(); // Initial check
 
-    gsap.fromTo(
-      ".topBar",
-      {
-        y: -100,
-        opacity: 0,
-      },
-      {
-        y: 0,
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  useEffect(() => {
+    if (isLargeScreen) {
+      gsap.to(".restContent", {
         opacity: 1,
         duration: 2,
-        delay: 1,
-      }
+        delay: 0.7,
+      });
+
+      gsap.fromTo(
+        ".topBar",
+        {
+          y: -100,
+          opacity: 0,
+        },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 2,
+          delay: 1,
+        }
+      );
+    }
+  }, [isLargeScreen]);
+
+  if (!isLargeScreen) {
+    return (
+      <div className="w-full h-screen bg-slate-900 flex items-center justify-center">
+        <p className="text-white text-lg text-center px-4">
+          Please view on a larger screen.
+        </p>
+      </div>
     );
-  }, []);
+  }
 
   return (
     <>
@@ -37,7 +64,7 @@ const Onboard = () => {
         </div>
       </nav>
       <div className="px-6 md:px-16">
-        <div className="restContent grid min-h-[80vh] grid-cols-1 md:grid-cols-2 items-center opacity-0">
+        <div className="restContent lg:grid min-h-[80vh] grid-cols-1 lg:grid-cols-2 items-center opacity-0">
           <ViewCanvas />
           <section className="col-start-2 md:row-start-1">
             <LoginForm />
@@ -48,4 +75,4 @@ const Onboard = () => {
   );
 };
 
-export default Onboard;
+export default Login;

@@ -80,7 +80,7 @@ const Honeybear = () => {
       if (!isRowCompleted(row)) return row;
     }
     return totalRows;
-  }, [revealedTiles, beeIndexes]);
+  }, [isRowCompleted]);
 
   // Start the game
   function handleBetButtonClick() {
@@ -314,6 +314,7 @@ const Honeybear = () => {
     hasCashedOut,
     difficulty,
     beeIndexes,
+    calculateRowsComplete,
   ]);
 
   // Animate winnings anouncement

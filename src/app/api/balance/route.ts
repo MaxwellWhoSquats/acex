@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { connectMongoDB } from "../../../../lib/mongodb";
 import User, { IUser } from "../../../../models/user";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
 
 // GET Balance and Net Balance
 export async function GET() {

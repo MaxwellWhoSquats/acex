@@ -16,7 +16,7 @@ export const authOptions: AuthOptions = {
           const { email, password } = credentials as { email: string; password: string }; // eslint-disable-line @typescript-eslint/no-explicit-any
           try {
             await connectMongoDB();
-            const user = await User.findOne({ email }) as { _id: string; password: string; toObject: () => any };
+            const user = await User.findOne({ email }) as { _id: string; password: string; toObject: () => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
   
             if (!user) {
               return null;

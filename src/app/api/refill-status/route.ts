@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { connectMongoDB } from "../../../../lib/mongodb";
 import User from "../../../../models/user";

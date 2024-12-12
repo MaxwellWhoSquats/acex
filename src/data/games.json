@@ -13,6 +13,11 @@
       "name": "Asteroids",
       "slug": "asteroids",
       "description": "Collect asteroids and watch out for aliens!"
+    },
+    {
+      "name": "Words",
+      "slug": "words",
+      "description": "Guess the word in 3 attempts, win big!"
     }
   ]
   

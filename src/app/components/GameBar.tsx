@@ -30,6 +30,15 @@ const GameBar = () => {
           >
             <img src="/honeybearlogo.jpeg" alt="Honeybear" />
           </Link>
+          <Link
+            href={`/games/words`}
+            className="w-40 border-4 border-slate-700 text-white rounded shadow hover:scale-105 transition ease-in-out"
+          >
+            <img src="/words.jpeg" alt="Words" />
+          </Link>
+          <div className="w-40 border-4 border-slate-700 text-white opacity-60 rounded shadow flex items-center justify-center text-center">
+            <p>More games coming soon!</p>
+          </div>
         </div>
       </div>
     </>

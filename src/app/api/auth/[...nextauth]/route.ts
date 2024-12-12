@@ -1,5 +1,3 @@
-// File: /app/api/auth/[...nextauth]/route.ts
-
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { connectMongoDB } from "../../../../../lib/mongodb";
@@ -8,63 +6,64 @@ import bcrypt from "bcryptjs";
 
 export const authOptions: AuthOptions = {
     providers: [
-        CredentialsProvider({
-            name: "Credentials",
-            credentials: {
-                email: { label: "Email", type: "email", placeholder: "you@example.com" },
-                password: { label: "Password", type: "password" }
-            },
-            async authorize(credentials) {
-                const { email, password } = credentials as { email: string; password: string };
-                try {
-                    await connectMongoDB();
-                    const user = await User.findOne({ email });
-
-                    if (!user) {
-                        return null;
-                    }
-
-                    const passwordsMatch = await bcrypt.compare(password, user.password);
-                    if (!passwordsMatch) {
-                        return null;
-                    }
-
-                    // Exclude the password from the returned user object
-                    const { password: _, ...userWithoutPassword } = user.toObject();
-
-                    return userWithoutPassword;
-                } catch (error) {
-                    console.error("Authorize error:", error);
-                    return null;
-                }
-            },
-        }),
+      CredentialsProvider({
+        name: "Credentials",
+        credentials: {
+          email: { label: "Email", type: "email", placeholder: "you@example.com" },
+          password: { label: "Password", type: "password" }
+        },
+        async authorize(credentials) {
+          const { email, password } = credentials as { email: string; password: string };
+          try {
+            await connectMongoDB();
+            const user = await User.findOne({ email }) as { _id: string; password: string; toObject: () => any };
+  
+            if (!user) {
+              return null;
+            }
+  
+            const passwordsMatch = await bcrypt.compare(password, user.password);
+            if (!passwordsMatch) {
+              return null;
+            }
+  
+            // Exclude the password from the returned user object
+            const { password: _, ...userWithoutPassword } = user.toObject();
+            userWithoutPassword._id = user._id.toString();
+  
+            return userWithoutPassword;
+          } catch (error) {
+            console.error("Authorize error:", error);
+            return null;
+          }
+        },
+      }),
     ],
     session: {
-        strategy: "jwt",
+      strategy: "jwt",
     },
     secret: process.env.NEXTAUTH_SECRET,
     pages: {
-        signIn: "/login",
+      signIn: "/login",
     },
     callbacks: {
-        async jwt({ token, user }) {
-            if (user) {
-                token.email = user.email;
-                token.balance = user.balance;
-            }
-            return token;
-        },
-        async session({ session, token }) {
-            if (token && session.user) {
-                session.user.email = token.email as string;
-                session.user.balance = token.balance as number;
-            }
-            return session;
-        },
+      async jwt({ token, user }) {
+        if (user) {
+          token.email = user.email;
+          token.balance = user.balance;
+        }
+        return token;
+      },
+      async session({ session, token }) {
+        if (token && session.user) {
+          session.user.email = token.email as string;
+          session.user.balance = token.balance as number;
+        }
+        return session;
+      },
     },
-};
-
-const handler = NextAuth(authOptions);
-
-export { handler as GET, handler as POST };
+  };
+  
+  const handler = NextAuth(authOptions);
+  
+  export { handler as GET, handler as POST };

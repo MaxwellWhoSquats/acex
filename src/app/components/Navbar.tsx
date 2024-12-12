@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 const Navbar = () => {
-  const { balance, setBalance } = useBalance();
+  const { balance, netBalance, setBalance, setNetBalance } = useBalance();
   const [canRefill, setCanRefill] = useState<boolean>(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [loadingRefillStatus, setLoadingRefillStatus] = useState<boolean>(true);
@@ -20,7 +20,7 @@ const Navbar = () => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const displayBalance =
-    typeof balance === "number" ? `${(balance / 100).toFixed(2)}` : "...";
+    typeof balance === "number" ? `$${(balance / 100).toFixed(2)}` : "...";
 
   // Fetch refill status on mount
   useEffect(() => {
@@ -72,8 +72,10 @@ const Navbar = () => {
     try {
       const response = await axios.post("/api/refill");
       if (response.status === 200) {
-        const { balance: newBalance } = response.data;
+        const { balance: newBalance, netBalance: newNetBalance } =
+          response.data;
         setBalance(newBalance);
+        setNetBalance(newNetBalance);
         setCanRefill(false);
         // Start a fresh 1-hour countdown
         setTimeRemaining(60 * 60 * 1000);
@@ -87,6 +89,7 @@ const Navbar = () => {
       ) {
         setCanRefill(false);
         setTimeRemaining(error.response.data.timeRemaining);
+        setNetBalance(error.response.data.netBalance);
       } else {
         alert("Refill failed. Please try again.");
       }
@@ -164,6 +167,26 @@ const Navbar = () => {
             className="absolute top-[60px] left-1/2 transform -translate-x-1/2 w-64 bg-slate-700 rounded shadow-lg p-4 z-50"
           >
             <h3 className="font-bold text-lg mb-2">Wallet</h3>
+            <div className="mb-2">
+              {netBalance === "..." ? (
+                <p className="text-sm text-gray-400">Loading net balance...</p>
+              ) : (
+                <p
+                  className={`font-bold text-sm ${
+                    typeof netBalance === "number"
+                      ? netBalance >= 0
+                        ? "text-green-500"
+                        : "text-red-500"
+                      : "text-gray-400"
+                  }`}
+                >
+                  Net:{" "}
+                  {typeof netBalance === "number"
+                    ? `$${(netBalance / 100).toFixed(2)}`
+                    : "..."}
+                </p>
+              )}
+            </div>
             {!loadingRefillStatus && (
               <div className="mb-2">
                 {canRefill ? (
@@ -193,7 +216,7 @@ const Navbar = () => {
             )}
             <button
               onClick={() => setShowWalletMenu(false)}
-              className="text-sm text-blue-500 underline"
+              className="text-sm text-purple-500 underline"
             >
               Close
             </button>

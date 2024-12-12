@@ -12,7 +12,9 @@ import axios from "axios";
 
 interface BalanceContextProps {
   balance: number | string; // Balance in cents
+  netBalance: number | string; // Net balance since account creation
   setBalance: (newBalance: number | string) => void;
+  setNetBalance: (newNetBalance: number | string) => void;
   updateBalance: (amount: number) => Promise<void>; // Amount in cents
 }
 
@@ -23,15 +25,19 @@ const BalanceContext = createContext<BalanceContextProps | undefined>(
 export const BalanceProvider = ({ children }: { children: ReactNode }) => {
   const { data: session } = useSession();
   const [balance, setBalance] = useState<number | string>("...");
+  const [netBalance, setNetBalance] = useState<number | string>("...");
 
   useEffect(() => {
     if (session?.user?.email) {
-      // Fetch the balance from the database when the user is authenticated
+      // Fetch the balance and netBalance from the database when the user is authenticated
       axios
         .get("/api/balance")
-        .then((response: { data: { balance: number } }) => {
+        .then((response: { data: { balance: number; netBalance: number } }) => {
           setBalance(response.data.balance);
-          console.log(`Fetched Balance: ${response.data.balance} cents`);
+          setNetBalance(response.data.netBalance);
+          console.log(
+            `Fetched Balance: ${response.data.balance} cents, Net Balance: ${response.data.netBalance} cents`
+          );
         })
         .catch((error: any) => {
           console.error("Failed to fetch balance:", error);
@@ -48,22 +54,19 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const newBalance = parseFloat((balance + amount).toFixed(2)); // Round to 2 decimal places
-      if (newBalance < 0) {
-        alert("Insufficient balance.");
-        return;
-      }
-
-      console.log(`Updating Balance: ${balance} + ${amount} = ${newBalance}`);
-      setBalance(newBalance);
-
       try {
         const response = await axios.patch("/api/balance", { amount });
-        setBalance(parseFloat(response.data.balance.toFixed(2)));
-        console.log(`Balance updated on server: ${response.data.balance}`);
+        if (response.status === 200) {
+          const { balance: newBalance, netBalance: newNetBalance } =
+            response.data;
+          setBalance(newBalance);
+          setNetBalance(newNetBalance);
+          console.log(
+            `Balance updated: ${newBalance} cents, Net Balance: ${newNetBalance} cents`
+          );
+        }
       } catch (error: any) {
         console.error("Failed to update balance:", error);
-        setBalance(balance); // Revert to previous balance
         alert("Failed to update balance. Please try again.");
       }
     },
@@ -71,7 +74,9 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <BalanceContext.Provider value={{ balance, setBalance, updateBalance }}>
+    <BalanceContext.Provider
+      value={{ balance, netBalance, setBalance, setNetBalance, updateBalance }}
+    >
       {children}
     </BalanceContext.Provider>
   );

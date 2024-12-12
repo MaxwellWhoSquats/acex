@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const user = await User.create({ email, password: hashedPassword });
     
     return NextResponse.json(
-      { message: "User successfully registered", user: {email: user.email, balance: user.balance} },
+      { message: "User successfully registered", user: { email: user.email, balance: user.balance } },
       { status: 201 }
     );
   } catch (error: any) {

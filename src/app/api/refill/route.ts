@@ -23,14 +23,17 @@ export async function POST(req: NextRequest) {
 
   if (!user.lastRefilled || now.getTime() - user.lastRefilled.getTime() > oneHour) {
     // Perform the refill
-    user.balance += 100000; // Add $1000 (in cents)
+    const refillAmount = 10000; // $100 in cents
+    user.balance += refillAmount; // Add to balance
+    user.netBalance += refillAmount; // Update netBalance
     user.lastRefilled = now;
     await user.save();
 
-    return NextResponse.json({ balance: user.balance, message: "Refill successful!" }, { status: 200 });
+    return NextResponse.json({ balance: user.balance, netBalance: user.netBalance, message: "Refill successful!" }, { status: 200 });
   } else {
     // Refill not available yet
-    const timeRemaining = oneHour - (now.getTime() - user.lastRefilled.getTime());
-    return NextResponse.json({ error: "Refill not yet available", timeRemaining }, { status: 400 });
+    const timeElapsed = now.getTime() - user.lastRefilled.getTime();
+    const timeRemaining = oneHour - timeElapsed;
+    return NextResponse.json({ error: "Refill not yet available", timeRemaining, netBalance: user.netBalance }, { status: 400 });
   }
 }

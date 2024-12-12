@@ -27,7 +27,7 @@ const authOptions: AuthOptions = {
             return null;
           }
 
-          const { password: _, ...userWithoutPassword } = user.toObject();
+          const { password: _, ...userWithoutPassword } = user.toObject(); // eslint-disable-line @typescript-eslint/no-unused-vars
           userWithoutPassword._id = user._id.toString();
 
           return userWithoutPassword;

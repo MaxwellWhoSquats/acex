@@ -5,6 +5,7 @@ import Card from "./Blackjack/Card";
 import { useBlackjack } from "./Blackjack/blackjack";
 import { useBalance } from "@/app/contexts/BalanceContext";
 import { gsap } from "gsap";
+import usePreloadImages from "@/app/hooks/usePreloadImages";
 
 interface BoardSize {
   width: number;
@@ -80,6 +81,14 @@ const Blackjack = () => {
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
   }, []);
+
+  // Preload images for all cards
+  const cardNames = [
+    ...playerHand.map((card) => card.name),
+    ...dealerHand.map((card) => card.name),
+  ];
+  const imageUrls = cardNames.map((name) => `/textures/faces/${name}.png`);
+  usePreloadImages(imageUrls);
 
   // Synchronize localGameOver with gameOver from useBlackjack
   useEffect(() => {

@@ -44,8 +44,6 @@ const Card = React.memo(
       ) {
         hasAnimated.current = true;
 
-        setFace("/textures/faces/cardback.png");
-
         const percentageOffsets: { [key: string]: number } = {
           player: 0.1,
           dealer: -0.4,
@@ -64,7 +62,6 @@ const Card = React.memo(
           -(boardSize.width / 2 - 24) +
           index * boardSize.width * INDEX_OFFSET_X;
 
-        // Initial deal animation
         const timeline = gsap.timeline({
           delay,
           onStart: () => {
@@ -85,7 +82,6 @@ const Card = React.memo(
           { x: targetX, y: targetY, opacity: 1, duration: 0.5 }
         );
 
-        // If not the dealer's face-down card, flip immediately
         if (!isDealerFaceDownCard) {
           timeline
             .to(cardRef.current, {
@@ -94,7 +90,7 @@ const Card = React.memo(
               ease: "power3.out",
             })
             .add(() => {
-              setFace(`/textures/faces/${card.name}.png`); // Reveal card face
+              setFace(`/textures/faces/${card.name}.png`);
             })
             .to(cardRef.current, {
               rotateY: 0,
@@ -114,7 +110,6 @@ const Card = React.memo(
     ]);
 
     useEffect(() => {
-      // Flip the dealer's face-down card if required
       if (
         flipDealerCard &&
         !isFlipped &&

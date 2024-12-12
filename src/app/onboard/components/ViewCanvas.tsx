@@ -5,7 +5,7 @@ import Model from "./CardSpade";
 import { Environment, Float } from "@react-three/drei";
 import * as THREE from "three";
 
-type Props = {};
+type Props = {}; // eslint-disable-line @typescript-eslint/no-empty-object-type
 
 export default function ViewCanvas({}: Props) {
   function SpinningModel() {

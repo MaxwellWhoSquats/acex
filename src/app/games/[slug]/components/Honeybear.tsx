@@ -160,10 +160,9 @@ const Honeybear = () => {
 
   // Calculate completed rows based on at least one non-bee tile being revealed
   function calculateRowsComplete(
-    revealedTiles: boolean[],
-    beeIndexes: number[]
+    revealedTiles: boolean[], // eslint-disable-line @typescript-eslint/no-unused-vars
+    beeIndexes: number[] // eslint-disable-line @typescript-eslint/no-unused-vars
   ): number {
-    const tilesPerRow = 4;
     let completedRows = 0;
 
     for (let row = 0; row < totalRows; row++) {
@@ -416,6 +415,7 @@ const Honeybear = () => {
           ease: "back.out(1.7)",
           stagger: {
             each: 0.12,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onStart: (index, target) => {
               const honeySoundInstance = new Audio("/sounds/honeypop.mp3");
               honeySoundInstance.play().catch((error) => {

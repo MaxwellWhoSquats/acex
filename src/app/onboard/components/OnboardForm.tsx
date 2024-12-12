@@ -37,6 +37,7 @@ const OnboardForm = () => {
         const data = await res.json();
         setError(data.error);
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setError(error.message);
     }

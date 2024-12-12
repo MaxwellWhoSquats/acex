@@ -81,6 +81,7 @@ const Navbar = () => {
         setTimeRemaining(60 * 60 * 1000);
         alert("Refill successful! Balance updated.");
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Refill failed:", error);
       if (

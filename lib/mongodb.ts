@@ -1,11 +1,6 @@
 import mongoose from 'mongoose';
 
-declare global {
-  var mongoose: {
-    conn: mongoose.Mongoose | null;
-    promise: Promise<mongoose.Mongoose> | null;
-  };
-}
+export {};
 
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
@@ -31,14 +26,16 @@ export async function connectMongoDB() {
   }
 
   if (!global.mongoose.promise) {
-    // If no connection promise exists, create one
-    global.mongoose.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    }).catch((error) => {
-      // Reset on failure
-      global.mongoose.promise = null;
-      throw error;
-    });
+    // If connection promise is not already set, create one
+    global.mongoose.promise = mongoose.connect(MONGODB_URI, opts)
+      .then((mongoose) => {
+        return mongoose;
+      })
+      .catch((error) => {
+        // Reset on failure
+        global.mongoose.promise = null;
+        throw error;
+      });
   }
 
   try {

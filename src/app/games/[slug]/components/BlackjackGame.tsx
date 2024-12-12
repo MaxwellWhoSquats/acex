@@ -26,8 +26,8 @@ const Blackjack = () => {
   // Animation tracking
   const [initialAnimationComplete, setInitialAnimationComplete] =
     useState(false);
-  const [initialDealCardsCount, setInitialDealCardsCount] = useState(0);
-  const [hitCardsCount, setHitCardsCount] = useState(0);
+  const [initialDealCardsCount, setInitialDealCardsCount] = useState(0); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [hitCardsCount, setHitCardsCount] = useState(0); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [standCardsCount, setStandCardsCount] = useState(0);
   const [scoreBackground, setScoreBackground] = useState("bg-gray-700");
   const [winnings, setWinnings] = useState<number>(0);

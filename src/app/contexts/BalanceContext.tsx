@@ -39,7 +39,7 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
             `Fetched Balance: ${response.data.balance} cents, Net Balance: ${response.data.netBalance} cents`
           );
         })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
           console.error("Failed to fetch balance:", error);
         });
     }
@@ -65,7 +65,7 @@ export const BalanceProvider = ({ children }: { children: ReactNode }) => {
             `Balance updated: ${newBalance} cents, Net Balance: ${newNetBalance} cents`
           );
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Failed to update balance:", error);
         alert("Failed to update balance. Please try again.");
       }

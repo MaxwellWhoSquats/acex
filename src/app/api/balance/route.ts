@@ -5,7 +5,7 @@ import User, { IUser } from "../../../../models/user";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // GET Balance and Net Balance
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Retrieve the session
     const session = await getServerSession(authOptions);

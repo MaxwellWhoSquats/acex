@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       { message: "User successfully registered", user: { email: user.email, balance: user.balance } },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error parsing JSON:", error);
     return NextResponse.json({ error: "Error, please try again." }, { status: 500 });
   }

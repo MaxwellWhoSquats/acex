@@ -13,7 +13,7 @@ export const authOptions: AuthOptions = {
           password: { label: "Password", type: "password" }
         },
         async authorize(credentials) {
-          const { email, password } = credentials as { email: string; password: string };
+          const { email, password } = credentials as { email: string; password: string }; // eslint-disable-line @typescript-eslint/no-explicit-any
           try {
             await connectMongoDB();
             const user = await User.findOne({ email }) as { _id: string; password: string; toObject: () => any };
@@ -27,7 +27,7 @@ export const authOptions: AuthOptions = {
               return null;
             }
   
-            // Exclude the password from the returned user object
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { password: _, ...userWithoutPassword } = user.toObject();
             userWithoutPassword._id = user._id.toString();
   

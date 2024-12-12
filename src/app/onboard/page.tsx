@@ -35,7 +35,7 @@ const Onboard = () => {
   useLayoutEffect(() => {
     if (!isLargeScreen) return; // Do not run animations on small screens
 
-    let ctx = gsap.context(() => {
+    const ctx = gsap.context(() => {
       const tl = gsap.timeline();
 
       // Animate tagline_1

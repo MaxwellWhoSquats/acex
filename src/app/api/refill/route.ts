@@ -4,7 +4,7 @@ import { connectMongoDB } from "../../../../lib/mongodb";
 import User from "../../../../models/user";
 import { authOptions } from "../auth/[...nextauth]/route";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.email) {

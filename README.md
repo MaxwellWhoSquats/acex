@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ace-X
 
-## Getting Started
+Ace-X is an online "gambling" website I created using Next.js as a hobby project. The site includes fresh designs on various mini-games that are simple, yet addicting!
 
-First, run the development server:
+🌐 **Live Demo**: [acex.vercel.app](https://acex.vercel.app)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🎮 Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Balance Management**: Centralized wallet system that allows players to use a single balance across multiple mini-games.
+- **Refillable Wallet**: Refillable wallet with a constant 1h timer.
+- **Secure Authentication**: User accounts are protected with NextAuth authentication.
+- **Custom Textures** Custom textures created in Blender used primarily in Blackjack to enhance the project's brand.
+- **Interactive Animations**: Powered by GSAP, Three.js, and React Fiber for engaging transitions and immersive gameplay experiences.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛠️ Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework**: [Next.js](https://nextjs.org/)
+- **Frontend**: [React](https://reactjs.org/) with [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Authentication**: [NextAuth](https://next-auth.js.org/)
+- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/)
+- **Animations**: [GSAP](https://greensock.com/gsap/), [Three.js](https://threejs.org/), [React Fiber](https://docs.pmnd.rs/react-three-fiber/getting-started/introduction)
+- **Hosting**: [Vercel](https://vercel.com/)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

@@ -26,6 +26,10 @@ const WordsGame = () => {
   const [letterColors, setLetterColors] = useState<string[]>(
     Array(5).fill("bg-gray-700")
   );
+  const [guessedLetters, setGuessedLetters] = useState<
+    { letter: string; status: string }[][]
+  >([]);
+
   const [attemptsLeft, setAttemptsLeft] = useState<number>(4);
   const [disableSubmit, setDisableSubmit] = useState<boolean>(false);
 
@@ -48,7 +52,7 @@ const WordsGame = () => {
 
     const randomIndex = Math.floor(Math.random() * wordList.length);
     console.log("Random word: ", wordList[randomIndex]);
-    return wordList[randomIndex].split("");
+    return wordList[randomIndex].toLowerCase().split("");
   }
 
   // Update the word whenever difficulty changes
@@ -105,7 +109,7 @@ const WordsGame = () => {
             onStart: () => {
               const popSound = new Audio("/sounds/pop.wav");
               popSound.play().catch((error) => {
-                console.error("Error playing honey sound:", error);
+                console.error("Error playing pop sound:", error);
               });
             },
           })
@@ -146,7 +150,7 @@ const WordsGame = () => {
     }
   }, [displayHowToPlay]);
 
-  // Animate winnings anouncement
+  // Animate winnings announcement
   useEffect(() => {
     if (winnings && gameOver && didWin) {
       const timeline = gsap.timeline();
@@ -176,13 +180,14 @@ const WordsGame = () => {
         setMultiplier(
           difficulty === 4 ? 1 : difficulty === 5 ? 3 : difficulty === 6 ? 5 : 1
         );
-        setWinnings(0); // Reset winnings
+        setWinnings(0);
         setGameStarted(true);
         setGameOver(false);
         setAttemptsLeft(4);
-        setUserGuess(""); // Reset guess
+        setUserGuess("");
         setDisplayedWord(Array(difficulty).fill(""));
-        setLetterColors(Array(difficulty).fill("bg-gray-700")); // Reset colors
+        setLetterColors(Array(difficulty).fill("bg-gray-700"));
+        setGuessedLetters([]);
 
         const newWord = generateRandomWord(difficulty);
         setWord(newWord);
@@ -208,36 +213,49 @@ const WordsGame = () => {
 
     setDisableSubmit(true);
 
-    // Copy the word to track matched letters
-    const wordCopy = [...word];
     const guess = userGuess.split("");
+    const wordCopy = [...word];
 
-    // Temporary arrays to hold updates
-    const tempDisplayedWord = [...displayedWord];
-    const tempLetterColors = [...letterColors];
+    const tempDisplayedWord = Array(difficulty).fill("");
+    const tempLetterColors = Array(difficulty).fill("bg-gray-700");
 
-    // First pass: Check for correct letters in the correct positions
+    const letterCount: { [key: string]: number } = {};
+    wordCopy.forEach((letter) => {
+      letterCount[letter] = (letterCount[letter] || 0) + 1;
+    });
+
+    // First pass: Check for correct letters in the correct positions (green)
     guess.forEach((letter, index) => {
       if (letter === wordCopy[index]) {
         tempDisplayedWord[index] = letter;
         tempLetterColors[index] = "bg-green-500";
-        wordCopy[index] = "";
+        letterCount[letter] -= 1;
       }
     });
 
-    // Second pass: Check for correct letters in the wrong positions
+    // Second pass: Check for correct letters in the wrong positions (yellow)
     guess.forEach((letter, index) => {
-      if (
-        tempLetterColors[index] !== "bg-green-500" &&
-        wordCopy.includes(letter)
-      ) {
+      if (tempLetterColors[index] === "bg-green-500") return; // Skip already green letters
+
+      if (letterCount[letter] && letterCount[letter] > 0) {
         tempDisplayedWord[index] = letter;
-        tempLetterColors[index] = "bg-yellow-500"; // Correct letter but wrong position
-        wordCopy[wordCopy.indexOf(letter)] = "";
-      } else if (tempLetterColors[index] !== "bg-green-500") {
+        tempLetterColors[index] = "bg-yellow-500";
+        letterCount[letter] -= 1;
+      } else {
         tempDisplayedWord[index] = letter;
-        tempLetterColors[index] = "bg-gray-700"; // Incorrect letter
+        tempLetterColors[index] = "bg-gray-700";
       }
+    });
+
+    // Create an array of guessed letters with status
+    const updatedGuessedLetters = guess.map((letter, index) => {
+      let status = "absent";
+      if (tempLetterColors[index] === "bg-green-500") {
+        status = "correct";
+      } else if (tempLetterColors[index] === "bg-yellow-500") {
+        status = "present";
+      }
+      return { letter: letter.toUpperCase(), status };
     });
 
     // Animation and state updates
@@ -276,12 +294,15 @@ const WordsGame = () => {
               }
             );
           }
-        }, 1); // 100ms delay
+        }, 1); // 1ms delay
       }, index * 500);
     });
 
     const totalAnimationDuration = guess.length * 500;
     setTimeout(() => {
+      // Append the current guess to guessedLetters (after main animation)
+      setGuessedLetters((prev) => [...prev, updatedGuessedLetters]);
+
       if (tempDisplayedWord.join("") === word.join("")) {
         setDidWin(true);
         handleWin();
@@ -420,7 +441,7 @@ const WordsGame = () => {
           How to play
         </button>
       </aside>
-      <main className="grid grid-rows-2 flex-1 relative overflow-hidden mt-32 gap-32">
+      <main className="grid grid-rows-3 flex-1 relative overflow-hidden mt-32">
         {/* Word Display Before Start Section */}
         {!gameStarted && (
           <section
@@ -444,8 +465,8 @@ const WordsGame = () => {
                     : "bg-gradient-to-br from-slate-900 to-fuchsia-950"
                 }`}
               >
-                {!didWin ? (
-                  <img src="/logo.png" className="" />
+                {!gameOver ? (
+                  <img src="/logo.png" className="" alt="Logo" />
                 ) : (
                   displayedWord[index]
                 )}
@@ -479,6 +500,31 @@ const WordsGame = () => {
         )}
 
         {/* Guess Input Section */}
+        <section className="guessed-letters-container w-full flex flex-col items-center space-y-2">
+          {/* Updated Guessed Letters Display */}
+          {guessedLetters.map((guess, guessIndex) => (
+            <div
+              key={`guess-${guessIndex}`}
+              className="flex space-x-1 justify-center"
+            >
+              {guess.map((guessed, index) => (
+                <div
+                  id={`guessedLetter-${guessIndex}-${index}`} // Unique ID for each guessed letter
+                  key={`guessed-${guessIndex}-${index}`} // Unique key for each letter
+                  className={`w-8 h-8 flex items-center justify-center rounded ${
+                    guessed.status === "correct"
+                      ? "bg-green-500"
+                      : guessed.status === "present"
+                      ? "bg-yellow-500"
+                      : "bg-gray-700"
+                  } text-white font-bold text-sm`}
+                >
+                  {guessed.letter}
+                </div>
+              ))}
+            </div>
+          ))}
+        </section>
         <section
           id="guess"
           className="w-[25%] justify-self-center self-start flex flex-col items-center"

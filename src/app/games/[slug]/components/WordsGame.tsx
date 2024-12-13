@@ -58,7 +58,7 @@ const WordsGame = () => {
     setDisplayedWord(Array(difficulty).fill(""));
   }, [difficulty]);
 
-  // Fade in the components when a new word is generated
+  // Fade in the components when a new word is generated and game hasn't started
   useLayoutEffect(() => {
     if (word.length > 0 && !gameStarted) {
       gsap.fromTo(

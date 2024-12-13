@@ -89,7 +89,7 @@ const WordsGame = () => {
         }
       );
     }
-  }, [difficulty]);
+  }, [difficulty, word]);
 
   // Animate each letter with a bounce effect
   useLayoutEffect(() => {
@@ -255,25 +255,28 @@ const WordsGame = () => {
           return newLetterColors;
         });
 
-        const letterElement = document.getElementById(`guessedLetter-${index}`);
-        if (letterElement) {
-          gsap.fromTo(
-            letterElement,
-            { scale: 0.8, opacity: 0 },
-            {
-              scale: 1,
-              opacity: 1,
-              duration: 0.4,
-              ease: "elastic.out(1, 0.5)",
-              onStart: () => {
-                const popSound = new Audio("/sounds/honeypop.mp3");
-                popSound.play().catch((error) => {
-                  console.error("Error playing honey sound:", error);
-                });
-              },
-            }
+        setTimeout(() => {
+          const letterElement = document.getElementById(
+            `guessedLetter-${index}`
           );
-        }
+          if (letterElement) {
+            gsap.fromTo(
+              letterElement,
+              { scale: 0.8 },
+              {
+                scale: 1,
+                duration: 0.4,
+                ease: "elastic.out(1, 0.5)",
+                onStart: () => {
+                  const popSound = new Audio("/sounds/honeypop.mp3");
+                  popSound.play().catch((error) => {
+                    console.error("Error playing honey sound:", error);
+                  });
+                },
+              }
+            );
+          }
+        }, 1); // 100ms delay
       }, index * 500);
     });
 

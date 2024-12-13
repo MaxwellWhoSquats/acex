@@ -102,7 +102,7 @@ const WordsGame = () => {
             duration: 0.2, // Quick jump
             ease: "power2.out",
             delay: 0.8 + index * 0.1, // Start a second late with stagger
-            onStart: (index, target) => {
+            onStart: () => {
               const popSound = new Audio("/sounds/pop.wav");
               popSound.play().catch((error) => {
                 console.error("Error playing honey sound:", error);

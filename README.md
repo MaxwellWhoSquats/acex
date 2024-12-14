@@ -2,7 +2,7 @@
 
 Ace-X is an online "gambling" website I created using Next.js as a hobby project. The site includes fresh designs on various mini-games that are simple, yet addicting!
 
-🌐 **Live Demo**: [acex.vercel.app](https://acex.vercel.app)
+🌐 **Visit On**: [acex.fun](https://acex.fun)
 
 
 ## 🎮 Features
